@@ -24,3 +24,4 @@ typing_extensions==4.9.0
 tzlocal==5.2
 uvicorn==0.24.0.post1
 wcwidth==0.2.12
+pyyaml==6.0.2

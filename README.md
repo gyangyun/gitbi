@@ -33,27 +33,66 @@ Repository needs to have the following structure:
 - (optional) special directory `_dashboards` that contains dashboard specifications (`.json` format)
 - (optional) README.md file content will be displayed on _Gitbi_ main page
 
-### Environment variables
+### Configuration File
 
-Name | Description
---- | ---
-GITBI\_REPO\_DIR | Path to the repository
-GITBI\_<DB\_NAME>\_CONN | Connection string
-GITBI\_<DB\_NAME>\_TYPE | Database type (see below for permissible values)
-GITBI\_AUTH | (Optional) List of users (`"user1:password1, user2:password2"`), if set, Basic HTTP Auth (RFC 7617) required for all calls
-GITBI\_SMTP\_USER | (Optional) SMTP user
-GITBI\_SMTP\_PASS | (Optional) SMTP password
-GITBI\_SMTP\_URL | (Optional) SMTP server (`"smtp.example.com:587"`)
-GITBI\_SMTP\_EMAIL | (Optional) SMTP email to send from
+_Gitbi_ uses a YAML configuration file to manage all settings. The application provides a template file `app/config.yaml.template` that you can use as a starting point. You need to:
+
+1. Copy the template file to create your own configuration:
+   ```bash
+   cp app/config.yaml.template app/config.yaml
+   ```
+
+2. Edit the `config.yaml` file with your actual settings.
+
+You can also specify a different configuration file location using the `GITBI_CONFIG_PATH` environment variable.
+
+Example configuration file:
+
+```yaml
+# Repository configuration
+repo:
+  dir: /path/to/your/repo  # Repository directory path
+
+# Database configuration
+databases:
+  db1:
+    type: postgres
+    connection_string: "postgresql://user:password@localhost:5432/db1"
+    
+  db2:
+    type: clickhouse
+    connection_string: "clickhouse://user:password@localhost:9000/db2"
+    
+  db3:
+    type: sqlite
+    connection_string: "/path/to/db3.sqlite"
+    
+  db4:
+    type: duckdb
+    connection_string: "/path/to/db4.duckdb"
+
+# Email configuration (optional)
+email:
+  smtp_user: your_smtp_user
+  smtp_pass: your_smtp_pass
+  smtp_url: smtp.example.com:587
+  smtp_email: your_email@example.com
+
+# Authentication configuration (optional)
+auth:
+  users:
+    - user1:password1
+    - user2:password2
+```
 
 Following database types are supported:
 
-Type (value of GITBI\_<DB\_NAME>\_TYPE) | Connection string format (GITBI\_<DB\_NAME>\_CONN)
---- | ---
-clickhouse | `clickhouse://[login]:[password]@[host]:[port]/[database]`
-duckdb | path to db file (or `:memory:`)
-postgres | `postgresql://[userspec@][hostspec][/dbname][?paramspec]`
-sqlite | path to db file (or `:memory:`)
+| Type       | Connection string format                                   |
+| ---------- | ---------------------------------------------------------- |
+| clickhouse | `clickhouse://[login]:[password]@[host]:[port]/[database]` |
+| duckdb     | path to db file (or `:memory:`)                            |
+| postgres   | `postgresql://[userspec@][hostspec][/dbname][?paramspec]`  |
+| sqlite     | path to db file (or `:memory:`)                            |
 
 ### Example
 
@@ -77,14 +116,20 @@ repo
 
 There are 2 databases named _db1_ and _db2_. _db1_ has 2 queries, one of them has also visualization; _db2_ has 3 queries, 1 with added visualization. There is also one dashboard called _my_dashboard.json_.
 
-For configuration you'd need to set the following environment variables:
+For configuration you'd need to set up the following in your `config.yaml`:
 
-```
-GITBI_REPO_DIR=<path_to_repo>
-GITBI_DB1_CONN=<conn_str_to_db1>
-GITBI_DB1_TYPE=<type_db1>
-GITBI_DB2_CONN=<conn_str_to_db2>
-GITBI_DB2_TYPE=<type_db2>
+```yaml
+repo:
+  dir: /path/to/your/repo
+
+databases:
+  db1:
+    type: postgres
+    connection_string: "postgresql://user:password@localhost:5432/db1"
+    
+  db2:
+    type: clickhouse
+    connection_string: "clickhouse://user:password@localhost:9000/db2"
 ```
 
 ## Config formatting

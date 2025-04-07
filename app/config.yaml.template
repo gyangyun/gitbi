@@ -1,0 +1,36 @@
+# Gitbi 配置文件模板
+
+# 仓库配置
+repo:
+  dir: /path/to/your/repo  # 仓库目录路径
+
+# 数据库配置
+databases:
+  db1:
+    type: postgres
+    connection_string: "postgresql://user:password@localhost:5432/db1"
+    
+  db2:
+    type: clickhouse
+    connection_string: "clickhouse://user:password@localhost:9000/db2"
+    
+  db3:
+    type: sqlite
+    connection_string: "/path/to/db3.sqlite"
+    
+  db4:
+    type: duckdb
+    connection_string: "/path/to/db4.duckdb"
+
+# 邮件配置（可选）
+email:
+  smtp_user: your_smtp_user
+  smtp_pass: your_smtp_pass
+  smtp_url: smtp.example.com:587
+  smtp_email: your_email@example.com
+
+# 认证配置（可选）
+auth:
+  users:
+    - user1:password1
+    - user2:password2 

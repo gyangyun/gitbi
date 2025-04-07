@@ -2,9 +2,8 @@
 Basic Auth for app
 https://www.starlette.io/authentication/
 """
-from starlette.authentication import (
-    AuthCredentials, AuthenticationBackend, AuthenticationError, SimpleUser
-)
+from starlette.authentication import (AuthCredentials, AuthenticationBackend,
+                                      AuthenticationError, SimpleUser)
 from starlette.middleware import Middleware
 from starlette.middleware.authentication import AuthenticationMiddleware
 from starlette.responses import PlainTextResponse
@@ -12,9 +11,12 @@ import base64
 import logging
 import repo
 
+
 class BasicAuthBackend(AuthenticationBackend):
+
     def __init__(self, users):
         self.users = users
+
     async def authenticate(self, conn):
         try:
             auth = conn.headers.get("Authorization")
@@ -29,23 +31,34 @@ class BasicAuthBackend(AuthenticationBackend):
         else:
             return AuthCredentials(["authenticated"]), SimpleUser(user)
 
+
 def _auth_challenge(request, exception):
     """
     Ask for Basic auth password
     """
     headers = {"WWW-Authenticate": "Basic realm=Gitbi access"}
-    return PlainTextResponse(status_code=401, headers=headers, content=str(exception))
+    return PlainTextResponse(status_code=401,
+                             headers=headers,
+                             content=str(exception))
+
 
 try:
     users = repo.get_auth()
-    parsed = (entry.split(":") for entry in users)
-    user_names = []
-    for parsed_entry, raw_entry in zip(parsed, users):
-        assert len(parsed_entry) == 2, f"Malformed entry: {raw_entry}"
-        user_names.append(parsed_entry[0])
-    AUTH = Middleware(AuthenticationMiddleware, backend=BasicAuthBackend(users), on_error=_auth_challenge)
-    USERS = parsed
-    logging.info(f"{len(user_names)} users: {', '.join(user_names)}")
+    if users:
+        parsed = (entry.split(":") for entry in users)
+        user_names = []
+        for parsed_entry, raw_entry in zip(parsed, users):
+            assert len(parsed_entry) == 2, f"Malformed entry: {raw_entry}"
+            user_names.append(parsed_entry[0])
+        AUTH = Middleware(AuthenticationMiddleware,
+                          backend=BasicAuthBackend(users),
+                          on_error=_auth_challenge)
+        USERS = parsed
+        logging.info(f"{len(user_names)} users: {', '.join(user_names)}")
+    else:
+        AUTH = None
+        USERS = tuple()
+        logging.warning(f"Auth not defined")
 except Exception as e:
     AUTH = None
     USERS = tuple()
