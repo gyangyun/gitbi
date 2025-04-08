@@ -326,6 +326,21 @@ def _remove_file(path):
     return True
 
 
+def _extract_default_values(content):
+    """
+    提取并替换Sql模板中占位符中的默认值
+    """
+    import re
+    pattern = r'\{\{([^:}]+):([^}]+)\}\}'
+    matches = re.finditer(pattern, content)
+    for match in matches:
+        var_name = match.group(1)
+        default_value = match.group(2)
+        # 替换占位符为默认值
+        content = content.replace(match.group(0), default_value)
+    return content
+
+
 def _get_file_content(state, path):
     """
     Read file content from git or filesystem
@@ -339,6 +354,8 @@ def _get_file_content(state, path):
                 commit = REPO.revparse_single(hash)
                 blob = commit.tree / path
                 content = blob.data.decode("UTF-8")
+        # 在读取文件内容后处理占位符
+        content = _extract_default_values(content)
     except Exception as e:
         # Common error for atual no file, permission, repo error etc.
         raise RuntimeError(
