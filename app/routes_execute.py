@@ -10,6 +10,7 @@ import query
 import repo
 import utils
 
+
 async def execute_route(request):
     """
     Endpoint for getting query result
@@ -21,8 +22,7 @@ async def execute_route(request):
         col_names, rows, duration_ms = query.execute(
             db=request.path_params.get("db"),
             query=query_data.get("query"),
-            lang=utils.get_lang(query_data.get("file"))
-        )
+            lang=utils.get_lang(query_data.get("file")))
         format = query_data.get("format")
         no_rows = len(rows)
         data_json = utils.get_data_json(col_names, rows)
@@ -38,7 +38,8 @@ async def execute_route(request):
             case "interactive-table" | "simple-table":
                 interactive = (format == "interactive-table")
                 table_id = f"results-table-{utils.random_id()}"
-                table = utils.format_htmltable(table_id, col_names, rows, interactive)
+                table = utils.format_htmltable(table_id, col_names, rows,
+                                               interactive)
             case "text" | "csv" | "json":
                 match format:
                     case "text":
@@ -52,12 +53,15 @@ async def execute_route(request):
                 raise ValueError(f"Bad format: {other}")
         data = {**data, "table": table}
         headers = {"Gitbi-Row-Count": str(no_rows)}
-        response = utils.TEMPLATES.TemplateResponse(name='partial_result.html', headers=headers, context=data)
+        response = utils.TEMPLATES.TemplateResponse(name='partial_result.html',
+                                                    headers=headers,
+                                                    context=data)
     except Exception as e:
         status_code = 404 if isinstance(e, RuntimeError) else 500
         raise HTTPException(status_code=status_code, detail=str(e))
     else:
         return response
+
 
 async def report_route(request):
     """
@@ -66,11 +70,17 @@ async def report_route(request):
     """
     try:
         format = request.path_params.get("format")
-        query_args = {k: request.path_params[k] for k in ("db", "file", "state")}
+        query_args = {
+            k: request.path_params[k]
+            for k in ("db", "file", "state")
+        }
         query_str, _lang = repo.get_query(**query_args)
         col_names, rows, duration_ms = query.execute_saved(**query_args)
         no_rows = len(rows)
-        headers = {"Gitbi-Row-Count": str(no_rows), "Gitbi-Duration-Ms": str(duration_ms)}
+        headers = {
+            "Gitbi-Row-Count": str(no_rows),
+            "Gitbi-Duration-Ms": str(duration_ms)
+        }
         table_id = f"results-table-{utils.random_id()}"
         common_data = {
             **utils.common_context_args(request),
@@ -82,12 +92,15 @@ async def report_route(request):
         }
         match format:
             case "html":
-                table = utils.format_htmltable(table_id, col_names, rows, False)
+                table = utils.format_htmltable(table_id, col_names, rows,
+                                               False)
                 data = {
                     **common_data,
                     "table": table,
                 }
-                response = utils.TEMPLATES.TemplateResponse(name='report.html', headers=headers, context=data)
+                response = utils.TEMPLATES.TemplateResponse(name='report.html',
+                                                            headers=headers,
+                                                            context=data)
             case "dashboard":
                 table = utils.format_htmltable(table_id, col_names, rows, True)
                 data_json = utils.get_data_json(col_names, rows)
@@ -100,19 +113,29 @@ async def report_route(request):
                     "tab_id": utils.random_id(),
                     "data_json": data_json,
                 }
-                response = utils.TEMPLATES.TemplateResponse(name='partial_dashboard_entry.html', context=data)
+                response = utils.TEMPLATES.TemplateResponse(
+                    name='partial_dashboard_entry.html', context=data)
             case "text":
                 table = utils.format_asciitable(col_names, rows)
                 data = {
                     **common_data,
                     "table": table,
                 }
-                response = utils.TEMPLATES.TemplateResponse(name='report.txt', headers=headers, context=data, media_type="text/plain")
+                response = utils.TEMPLATES.TemplateResponse(
+                    name='report.txt',
+                    headers=headers,
+                    context=data,
+                    media_type="text/plain")
             case "json":
-                response = PlainTextResponse(content=utils.get_data_json(col_names, rows), headers=headers, media_type="application/json")
+                response = PlainTextResponse(content=utils.get_data_json(
+                    col_names, rows),
+                                             headers=headers,
+                                             media_type="application/json")
             case "csv":
                 table = utils.format_csvtable(col_names, rows)
-                response = PlainTextResponse(content=table, headers=headers, media_type="text/csv")
+                response = PlainTextResponse(content=table,
+                                             headers=headers,
+                                             media_type="text/csv")
             case other:
                 raise ValueError(f"Bad format: {other}")
         alert = request.query_params.get("alert")
@@ -125,8 +148,7 @@ async def report_route(request):
                 content=response.body.decode(),
                 format=format,
                 to=mail,
-                file_name=file_name
-            )
+                file_name=file_name)
     except Exception as e:
         status_code = 404 if isinstance(e, RuntimeError) else 500
         raise HTTPException(status_code=status_code, detail=str(e))

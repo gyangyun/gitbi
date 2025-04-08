@@ -6,6 +6,7 @@ from starlette.responses import PlainTextResponse
 import repo
 import utils
 
+
 async def delete_route(request):
     """
     Delete query from repository
@@ -15,12 +16,15 @@ async def delete_route(request):
         repo.delete_query(user=user, **request.path_params)
         redirect_url = request.app.url_path_for("home_route", state="HEAD")
         headers = {"HX-Redirect": redirect_url}
-        response = PlainTextResponse(content="OK", headers=headers, status_code=200)
+        response = PlainTextResponse(content="OK",
+                                     headers=headers,
+                                     status_code=200)
     except Exception as e:
         status_code = 404 if isinstance(e, RuntimeError) else 500
         raise HTTPException(status_code=status_code, detail=str(e))
     else:
         return response
+
 
 async def save_route(request):
     """
@@ -36,19 +40,20 @@ async def save_route(request):
             query=data["query"],
             viz=data["viz"],
         )
-        redirect_url = request.app.url_path_for(
-            "saved_query_route",
-            db=request.path_params['db'],
-            file=data['file'],
-            state="HEAD"
-        )
+        redirect_url = request.app.url_path_for("saved_query_route",
+                                                db=request.path_params['db'],
+                                                file=data['file'],
+                                                state="HEAD")
         headers = {"HX-Redirect": redirect_url}
-        response = PlainTextResponse(content="OK", headers=headers, status_code=200)
+        response = PlainTextResponse(content="OK",
+                                     headers=headers,
+                                     status_code=200)
     except Exception as e:
         status_code = 404 if isinstance(e, RuntimeError) else 500
         raise HTTPException(status_code=status_code, detail=str(e))
     else:
         return response
+
 
 async def query_route(request):
     """
@@ -62,12 +67,13 @@ async def query_route(request):
             "query": request.query_params.get('query') or "",
             "viz": "null",
             "file": "__empty__",
-            **request.path_params, # db
+            **request.path_params,  # db
         }
     except RuntimeError as e:
         raise HTTPException(status_code=404, detail=str(e))
     else:
         return await _query(request)
+
 
 async def saved_query_route(request):
     """
@@ -79,13 +85,14 @@ async def saved_query_route(request):
         request.state.query_data = {
             "query": query_str,
             "viz": viz_str,
-            **request.path_params, # db, file, state
+            **request.path_params,  # db, file, state
         }
     except RuntimeError as e:
         raise HTTPException(status_code=404, detail=str(e))
     else:
-        
+
         return await _query(request)
+
 
 async def _query(request):
     """

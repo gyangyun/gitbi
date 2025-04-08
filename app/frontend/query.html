@@ -1,115 +1,133 @@
 {% extends "base.html" %}
 {% block extendhead %}
-    <link href="{{ request.app.url_path_for('static', path='/css/github.min.css') }}" rel="stylesheet">
-    <script src="{{ request.app.url_path_for('static', path='/js/echarts.min.js') }}"></script>
-    <script type="module">
-        {% include 'js/code_editor.js' %}
-    </script>
-    <script type="text/javascript">
-        {% include 'js/viz.js' %}
-        {% include 'js/viz_control.js' %}
-    </script>
+<link href="{{ request.app.url_path_for('static', path='/css/github.min.css') }}" rel="stylesheet">
+<script src="{{ request.app.url_path_for('static', path='/js/echarts.min.js') }}"></script>
+<script type="module">
+    {% include 'js/code_editor.js' %}
+</script>
+<script type="text/javascript">
+    {% include 'js/viz.js' %}
+    {% include 'js/viz_control.js' %}
+</script>
+<style>
+    .variable-row {
+        margin-bottom: 8px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .variable-name {
+        flex: 0 0 120px;
+        font-weight: 500;
+    }
+
+    .variable-value {
+        flex: 1;
+        max-width: 300px;
+    }
+
+    .variables-container {
+        background: #f8f9fa;
+        padding: 15px;
+        border-radius: 4px;
+        margin-top: 10px;
+    }
+
+    .variables-title {
+        font-size: 14px;
+        color: #666;
+        margin-bottom: 10px;
+    }
+</style>
 {% endblock %}
 {% block title %}Query | {{ db|e }}{% if file != "__empty__" %}| {{ file }}{% endif %}{% endblock %}
 {% block content %}
-    <h1><img class="icon icon-db" alt="">{{ db|e }}{% if file != "__empty__" %} | {{ file }}{% endif %}</h1>
-    {% if file != "__empty__" %}{% include 'partial_query_links.html' %}{% endif %}
+<h1><img class="icon icon-db" alt="">{{ db|e }}{% if file != "__empty__" %} | {{ file }}{% endif %}</h1>
+{% if file != "__empty__" %}{% include 'partial_query_links.html' %}{% endif %}
+<div class="bottom-margin">
+    <label for="query-editor">Query</label>
+    <div id="query-editor" class="text-result code-editor language-sql">{{ query }}</div>
+    <div class="variables-container">
+        <div class="variables-title">Template Variables</div>
+        <div id="variables-container">
+            <!-- Variables will be populated here -->
+        </div>
+    </div>
+</div>
+<form class="pure-form pure-form-stacked">
     <div class="bottom-margin">
-        <label for="query-editor">Query</label>
-        <div id="query-editor" class="text-result code-editor language-sql">{{ query }}</div>
+        <label for="file-name">Query file name</label>
+        <input type="text" id="file-name" name="file-name" placeholder="Enter file name"
+            value="{% if file != '__empty__' %}{{ file }}{% endif %}">
+        <small>Query name must have <em>.sql</em> or <em>.prql</em> extension</small>
     </div>
-    <form class="pure-form pure-form-stacked">
-        <div class="bottom-margin">
-            <label for="file-name">Query file name</label>
-            <input type="text" id="file-name" name="file-name" placeholder="Enter file name" value="{% if file != '__empty__' %}{{ file }}{% endif %}">
-            <small>Query name must have <em>.sql</em> or <em>.prql</em> extension</small>
-        </div>
-        <div class="bottom-margin">
-            <label for="result-format">Result format</label>
-            <select id="result-format" required>
-                <option value="interactive-table" selected>Interactive table</option>
-                <option value="simple-table">Standard table</option>
-                <option value="text">ASCII table</option>
-                <option value="csv">CSV</option>
-                <option value="json">JSON</option>
-            </select>
-        </div>
-    </form>
-    <div class="pure-button-group bottom-margin" role="group">
-        <div
-            class="pure-button"
-            hx-post="{{ request.app.url_path_for('execute_route', db=db) }}"
-            hx-vals="js:{data: query_format()}"
-            hx-trigger="click"
-            hx-target="#query-result"
-            hx-target-error="#htmx-error"
-            hx-swap="innerHTML"
-        >
-            Run
-        </div>
-        <div
-            class="pure-button"
-            hx-post="{{ request.app.url_path_for('query_save_route', db=db) }}"
-            hx-vals="js:{data: query_format()}"
-            hx-trigger="click"
-            hx-target-error="#htmx-error"
-            hx-swap="innerHTML"
-        >
-            Save query
-        </div>
-        <div
-            class="pure-button"
-            onclick="generate_link()"
-        >
-            Generate share link
-        </div>
-        {% if file != "__empty__" %}
-        <div
-            class="pure-button"
-            hx-get="{{ request.app.url_path_for('query_delete_route', db=db, file=file) }}"
-            hx-trigger="click"
-            hx-target-error="#htmx-error"
-            hx-swap="innerHTML"
-        >
-            Delete query
-        </div>
-        {% endif %}
+    <div class="bottom-margin">
+        <label for="result-format">Result format</label>
+        <select id="result-format" required>
+            <option value="interactive-table" selected>Interactive table</option>
+            <option value="simple-table">Standard table</option>
+            <option value="text">ASCII table</option>
+            <option value="csv">CSV</option>
+            <option value="json">JSON</option>
+        </select>
     </div>
-    <div>
-        <h2>Result</h2>
-        <div id="query-result">
-            <p>No data available</p>
-            <p class="htmx-indicator" aria-busy="true">Running query...</p>
-        </div>
-        <h2 >Visualization</h2>
-        <div id="echart-note">No data available</div>
-        <div id="echart-chart" class="hidden">
-            <form id="echart-options" class="pure-form pure-form-stacked bottom-margin">
-                <label for="echart-options-type">
-                    Chart type
-                    <select id="echart-options-type">
-                        <option value="scatter">Scatter</option>
-                        <option value="line" selected>Line</option>
-                        <option value="bar">Bar</option>
-                        <option value="heatmap">Heatmap</option>
-                    </select>
-                </label>
-                <label for="echart-options-xaxis">X axis<select id="echart-options-xaxis"></select></label>
-                <label for="echart-options-yaxis">Y axis<select id="echart-options-yaxis"></select></label>
-                <label for="echart-options-zaxis">Z axis<select id="echart-options-zaxis"></select></label>
-                <label for="echart-options-group">Group<select id="echart-options-group"></select></label>
-                <button id="echart-render" class="pure-button" onclick="make_viz()">Render chart</button>
-            </form>
-            <div id="{{ echart_id }}"></div>
-            <script type="text/javascript">
-                var chart_options = {{ viz }};
-                var chart_el = document.getElementById('{{ echart_id }}');
-                chart_el.addEventListener("newdata", (e) => {
-                    current_data = e.detail.data;
-                    update_chart_options();
-                    make_viz();
-                });
-            </script>
-        </div>
+</form>
+<div class="pure-button-group bottom-margin" role="group">
+    <div class="pure-button" hx-post="{{ request.app.url_path_for('execute_route', db=db) }}"
+        hx-vals="js:{data: execute_query_format()}" hx-trigger="click" hx-target="#query-result"
+        hx-target-error="#htmx-error" hx-swap="innerHTML">
+        Run
     </div>
+    <div class="pure-button" hx-post="{{ request.app.url_path_for('query_save_route', db=db) }}"
+        hx-vals="js:{data: save_query_format()}" hx-trigger="click" hx-target-error="#htmx-error" hx-swap="innerHTML">
+        Save query
+    </div>
+    <div class="pure-button" onclick="generate_link()">
+        Generate share link
+    </div>
+    {% if file != "__empty__" %}
+    <div class="pure-button" hx-get="{{ request.app.url_path_for('query_delete_route', db=db, file=file) }}"
+        hx-trigger="click" hx-target-error="#htmx-error" hx-swap="innerHTML">
+        Delete query
+    </div>
+    {% endif %}
+</div>
+<div>
+    <h2>Result</h2>
+    <div id="query-result">
+        <p>No data available</p>
+        <p class="htmx-indicator" aria-busy="true">Running query...</p>
+    </div>
+    <h2>Visualization</h2>
+    <div id="echart-note">No data available</div>
+    <div id="echart-chart" class="hidden">
+        <form id="echart-options" class="pure-form pure-form-stacked bottom-margin">
+            <label for="echart-options-type">
+                Chart type
+                <select id="echart-options-type">
+                    <option value="scatter">Scatter</option>
+                    <option value="line" selected>Line</option>
+                    <option value="bar">Bar</option>
+                    <option value="heatmap">Heatmap</option>
+                </select>
+            </label>
+            <label for="echart-options-xaxis">X axis<select id="echart-options-xaxis"></select></label>
+            <label for="echart-options-yaxis">Y axis<select id="echart-options-yaxis"></select></label>
+            <label for="echart-options-zaxis">Z axis<select id="echart-options-zaxis"></select></label>
+            <label for="echart-options-group">Group<select id="echart-options-group"></select></label>
+            <button id="echart-render" class="pure-button" onclick="make_viz()">Render chart</button>
+        </form>
+        <div id="{{ echart_id }}"></div>
+        <script type="text/javascript">
+            var chart_options = {{ viz }};
+            var chart_el = document.getElementById('{{ echart_id }}');
+            chart_el.addEventListener("newdata", (e) => {
+                current_data = e.detail.data;
+                update_chart_options();
+                make_viz();
+            });
+        </script>
+    </div>
+</div>
 {% endblock %}

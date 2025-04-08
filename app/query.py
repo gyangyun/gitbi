@@ -19,6 +19,7 @@ DATABASES = {
     "duckdb": duckdb,
 }
 
+
 def list_tables(db):
     """
     List tables in db
@@ -37,6 +38,7 @@ def list_tables(db):
     tables = sorted(el[0] for el in rows)
     return tables
 
+
 def list_table_data_types(db, tables):
     """
     List columns and their data types for given tables in DB
@@ -44,9 +46,11 @@ def list_table_data_types(db, tables):
     db_type, _conn_str = repo.get_db_params(db)
     if tables:
         match db_type:
-            # Every query must return table with 3 cols: table_name, column_name, data_type
+        # Every query must return table with 3 cols: table_name, column_name, data_type
             case "sqlite" | "duckdb":
-                query = " union all ".join(f"select '{table}', name, type from pragma_table_info('{table}')" for table in tables)
+                query = " union all ".join(
+                    f"select '{table}', name, type from pragma_table_info('{table}')"
+                    for table in tables)
             case "postgres":
                 tables_joined = ', '.join(f"\'{table}\'" for table in tables)
                 query = f"""
@@ -65,9 +69,14 @@ def list_table_data_types(db, tables):
         _col_names, rows, _duration_ms = execute(db, query, "sql")
     else:
         rows = tuple()
-    col_names = ("table", "column", "type", )
+    col_names = (
+        "table",
+        "column",
+        "type",
+    )
     table = utils.format_htmltable(utils.random_id(), col_names, rows, True)
     return table
+
 
 def execute(db, query, lang):
     """
@@ -79,8 +88,9 @@ def execute(db, query, lang):
     if lang == "prql":
         query = prql.compile(query)
     col_names, rows = _execute_query(driver, conn_str, query)
-    duration_ms = round(1000*(time()-start))
+    duration_ms = round(1000 * (time() - start))
     return col_names, rows, duration_ms
+
 
 def execute_saved(db, file, state):
     """
@@ -89,16 +99,22 @@ def execute_saved(db, file, state):
     query, lang = repo.get_query(db=db, file=file, state=state)
     return execute(db, query, lang)
 
+
 def _execute_query(driver, conn_str, query):
     """
     Executes SQL query against DB using suitable driver
     """
+    print(query)
     try:
-        if driver in (sqlite3, duckdb, ) and conn_str != ":memory:":
+        if driver in (
+                sqlite3,
+                duckdb,
+        ) and conn_str != ":memory:":
             assert os.path.exists(conn_str), f"No DB file at path: {conn_str}"
         conn = driver.connect(conn_str)
         cursor = conn.cursor()
-        statements = (sqlparse.format(s, strip_comments=True).strip() for s in sqlparse.split(query))
+        statements = (sqlparse.format(s, strip_comments=True).strip()
+                      for s in sqlparse.split(query))
         statements = tuple(el for el in statements if el)
         assert statements, f"No valid SQL statements in: {query}"
         for statement in statements:
