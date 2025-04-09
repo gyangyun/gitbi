@@ -11,6 +11,7 @@ import repo
 import sqlite3
 import sqlparse
 import utils
+import re
 
 DATABASES = {
     "sqlite": sqlite3,
@@ -100,6 +101,20 @@ def execute_saved(db, file, state):
     return execute(db, query, lang)
 
 
+def _extract_query_default_values(content):
+    """
+    提取并替换Sql模板中占位符中的默认值
+    """
+    pattern = r'\{\{([^:}]+):([^}]+)\}\}'
+    matches = re.finditer(pattern, content)
+    for match in matches:
+        var_name = match.group(1)
+        default_value = match.group(2)
+        # 替换占位符为默认值
+        content = content.replace(match.group(0), default_value)
+    return content
+
+
 def _execute_query(driver, conn_str, query):
     """
     Executes SQL query against DB using suitable driver
@@ -113,6 +128,8 @@ def _execute_query(driver, conn_str, query):
             assert os.path.exists(conn_str), f"No DB file at path: {conn_str}"
         conn = driver.connect(conn_str)
         cursor = conn.cursor()
+        # 增加了sql支持占位符的功能，如果添加了占位符需要从占位符里读取变量对应的默认值
+        query = _extract_query_default_values(query)
         statements = (sqlparse.format(s, strip_comments=True).strip()
                       for s in sqlparse.split(query))
         statements = tuple(el for el in statements if el)

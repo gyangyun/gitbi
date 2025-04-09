@@ -97,6 +97,8 @@ window.save_query_format = function () {
     const viz = window.get_chart_options ? JSON.stringify(window.get_chart_options()) : 'null';
     const echart_id = document.querySelector('#echart-chart div[id^="echart-"]')?.id || '';
 
+    console.log('save_query_format');
+    console.log(query, fileName, format, viz, echart_id);
     return JSON.stringify({
         query: query,  // 保存原始SQL模板
         file: fileName,
