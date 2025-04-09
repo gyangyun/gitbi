@@ -9,26 +9,26 @@ function format_row(row, chart_options, current_data) {
 }
 function series_single(current_data, chart_options) {
     var data = current_data.data.map(row => format_row(row, chart_options, current_data));
-    var series = [{data: data, type: chart_options.type, name: chart_options.yaxis}];
+    var series = [{ data: data, type: chart_options.type, name: chart_options.yaxis }];
     return series
 }
 function series_multi(current_data, chart_options) {
     var series = {};
     current_data.data.forEach(row => {
         if (series[row[chart_options.group_index]] === undefined) {
-            series[row[chart_options.group_index]] = {data: [format_row(row, chart_options, current_data), ], type: chart_options.type, name: chart_options.group};
+            series[row[chart_options.group_index]] = { data: [format_row(row, chart_options, current_data),], type: chart_options.type, name: chart_options.group };
         } else {
             series[row[chart_options.group_index]].data.push(format_row(row, chart_options, current_data));
         }
     });
-    series = Object.keys(series).map(k => {return Object.assign({}, series[k], {name: k})});
+    series = Object.keys(series).map(k => { return Object.assign({}, series[k], { name: k }) });
     return series
 }
 function create_viz(current_data, chart_options, chart_el) {
-    var axis_opts = {nameLocation: 'middle', nameTextStyle: {padding: 20}, splitArea: {show: true}, }
+    var axis_opts = { nameLocation: 'middle', nameTextStyle: { padding: 20 }, splitArea: { show: true }, }
     if (['line', 'scatter'].includes(chart_options.type)) {
-        axis_opts.min = function (value) {return value.min - ((value.max-value.min)*0.1);};
-        axis_opts.max = function (value) {return value.max + ((value.max-value.min)*0.1);};
+        axis_opts.min = function (value) { return value.min - ((value.max - value.min) * 0.1); };
+        axis_opts.max = function (value) { return value.max + ((value.max - value.min) * 0.1); };
     }
     chart_options.x_index = current_data.headings.indexOf(chart_options.xaxis);
     chart_options.y_index = current_data.headings.indexOf(chart_options.yaxis);
@@ -48,27 +48,27 @@ function create_viz(current_data, chart_options, chart_el) {
         var series = series_multi(current_data, chart_options);
     }
     var echarts_conf = {
-        legend: {show: true, top: 20, },
-        toolbox: {show: true, feature: {saveAsImage: {show: true}}},
-        tooltip: {show: true, triggerOn: "mousemove", },
-        title: {show: true, text: title},
-        textStyle: {fontFamily: 'Ubuntu', fontSize: 16},
-        xAxis: Object.assign({}, {type: current_data.dtypes[chart_options.x_index], name: chart_options.xaxis}, axis_opts),
-        yAxis: Object.assign({}, {type: current_data.dtypes[chart_options.y_index], name: chart_options.yaxis}, axis_opts),
+        legend: { show: true, top: 20, },
+        toolbox: { show: true, feature: { saveAsImage: { show: true } } },
+        tooltip: { show: true, triggerOn: "mousemove", },
+        title: { show: true, text: title },
+        textStyle: { fontFamily: 'Ubuntu', fontSize: 16 },
+        xAxis: Object.assign({}, { type: current_data.dtypes[chart_options.x_index], name: chart_options.xaxis }, axis_opts),
+        yAxis: Object.assign({}, { type: current_data.dtypes[chart_options.y_index], name: chart_options.yaxis }, axis_opts),
         series: series,
     };
     if (chart_options.zaxis !== '_NONE') {
         var in_range;
         if (chart_options.type === 'heatmap') {
-            echarts_conf.series.forEach(el => el['label'] = {show: true});
-            in_range = {color: ['rgb(252, 255, 164)', 'rgb(249, 142, 9)', 'rgb(188, 55, 84)', 'rgb(87, 16, 110)', 'rgb(0, 0, 4)']};
+            echarts_conf.series.forEach(el => el['label'] = { show: true });
+            in_range = { color: ['rgb(252, 255, 164)', 'rgb(249, 142, 9)', 'rgb(188, 55, 84)', 'rgb(87, 16, 110)', 'rgb(0, 0, 4)'] };
         } else if (['line', 'scatter'].includes(chart_options.type)) {
-            in_range = {symbolSize: [10, 60]}
+            in_range = { symbolSize: [10, 60] }
         } else {
             throw new Error('z axis does not make sense for this chart type');
         }
         var z_data = series.map(el => el.data).flat().map(el => el[2])
-        echarts_conf['visualMap'] = {min: Math.min(...z_data), max: Math.max(...z_data) , type: 'continuous', dimension: 2, inRange: in_range};
+        echarts_conf['visualMap'] = { min: Math.min(...z_data), max: Math.max(...z_data), type: 'continuous', dimension: 2, inRange: in_range };
     }
     var chart = echarts.init(chart_el);
     chart.setOption(echarts_conf);

@@ -19,9 +19,9 @@ function get_chart_options() {
 }
 window.get_chart_options = get_chart_options;
 function update_chart_options() {
-    var select_ids = ['echart-options-xaxis', 'echart-options-yaxis', 'echart-options-zaxis','echart-options-group', ];
+    var select_ids = ['echart-options-xaxis', 'echart-options-yaxis', 'echart-options-zaxis', 'echart-options-group',];
     var headings = Array.from(document.getElementById(select_ids[0]).getElementsByTagName('option')).map((node) => node.value)
-    var new_headings = ['_NONE', ].concat(current_data.headings);
+    var new_headings = ['_NONE',].concat(current_data.headings);
     if (!array_ident(headings, new_headings)) {
         select_ids.forEach(id => {
             var columns = new_headings.map((name) => {
