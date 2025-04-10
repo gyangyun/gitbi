@@ -3,3 +3,4 @@ gitbi-example
 **/__pycache__
 **/.pytest_cache
 .vscode
+代码说明.md
