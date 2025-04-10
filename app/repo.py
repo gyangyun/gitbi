@@ -30,9 +30,15 @@ DASHBOARDS_DIR = "_dashboards"
 DASHBOARDS_FULL_PATH = os.path.join(DIR, DASHBOARDS_DIR)
 if not os.path.exists(DASHBOARDS_FULL_PATH):
     os.makedirs(DASHBOARDS_FULL_PATH)
+# 添加Document常量
+DOCUMENTS_DIR = "_documents"
+DOCUMENTS_FULL_PATH = os.path.join(DIR, DOCUMENTS_DIR)
+if not os.path.exists(DOCUMENTS_FULL_PATH):
+    os.makedirs(DOCUMENTS_FULL_PATH)
 QUERIES_EXCLUDE = (
     ".git",
     DASHBOARDS_DIR,
+    DOCUMENTS_DIR,
 )
 SCHEDULE_KEYS = (
     "cron",
@@ -435,6 +441,99 @@ def _commit(user, operation, files):
         ]  # parents
     )
     return True
+
+
+# 添加文档模板相关函数
+def list_documents(state="file"):
+    """
+    列出所有可用的文档模板
+    """
+    try:
+        match state:
+            case 'file':
+                # 确保目录存在
+                if not os.path.exists(DOCUMENTS_FULL_PATH):
+                    os.makedirs(DOCUMENTS_FULL_PATH)
+                documents = _list_file_names(DOCUMENTS_FULL_PATH)
+                documents = [f for f in documents if f.endswith('.docx')]
+            case hash:
+                # 从Git仓库中读取
+                commit = REPO.revparse_single(hash)
+                documents = []
+                for path in (
+                        Path(el)
+                        for el in _get_tree_objects_generator(commit.tree)):
+                    if len(path.parts) == 2 and str(
+                            path.parent
+                    ) == DOCUMENTS_DIR and path.name.endswith('.docx'):
+                        documents.append(path.name)
+
+        return sorted(documents)  # 返回排序后的列表
+    except Exception as e:
+        logging.warning(f"无法列出文档: {str(e)}")
+        return []  # 返回空列表
+
+
+def save_document(user, file_name, file_content):
+    """
+    保存文档模板
+    user: 用户名
+    file_name: 文件名（应该以.docx结尾）
+    file_content: 文件内容（二进制）
+    """
+    if not file_name.endswith('.docx'):
+        file_name = f"{file_name}.docx"
+
+    document_path = f"{DOCUMENTS_DIR}/{file_name}"
+
+    # 确保_documents目录存在
+    os.makedirs(DOCUMENTS_FULL_PATH, exist_ok=True)
+
+    # 写入文件
+    with open(os.path.join(DIR, document_path), 'wb') as f:
+        f.write(file_content)
+
+    # 提交到Git
+    _commit(user, "save", [document_path])
+    return True
+
+
+def delete_document(user, file_name):
+    """
+    删除文档模板
+    user: 用户名
+    file_name: 文件名
+    """
+    # 确保文件名格式正确
+    if not file_name.endswith('.docx'):
+        file_name = f"{file_name}.docx"
+
+    document_path = f"{DOCUMENTS_DIR}/{file_name}"
+
+    # 删除文件
+    try:
+        assert _remove_file(document_path), f"Cannot remove {document_path}"
+    except:
+        return False
+
+    # 提交到Git
+    _commit(user, "delete", [document_path])
+    return True
+
+
+def get_document_path(file_name):
+    """
+    获取文档模板的完整路径
+    """
+    if not file_name.endswith('.docx'):
+        file_name = f"{file_name}.docx"
+
+    document_path = os.path.join(DIR, f"{DOCUMENTS_DIR}/{file_name}")
+
+    if os.path.exists(document_path):
+        return document_path
+    else:
+        return None
 
 
 def _read_env_var(key):

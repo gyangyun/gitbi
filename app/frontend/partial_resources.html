@@ -2,22 +2,43 @@
     <h2><img class="icon icon-dashboard" alt="">Dashboards</h2>
     <a class="pure-button" href="{{ request.app.url_path_for('dashboard_new_route') }}">new dashboard</a>
     <ul class="mylist">
-    {% for dashboard in dashboards %}
-        <li><a href="{{ request.app.url_path_for('dashboard_route', state=state, file=dashboard) }}">{{ dashboard|e }}</a></li>
-    {% endfor %}
+        {% for dashboard in dashboards %}
+        <li><a href="{{ request.app.url_path_for('dashboard_route', state=state, file=dashboard) }}">{{ dashboard|e
+                }}</a></li>
+        {% endfor %}
     </ul>
+
+    <!-- 修改文档管理部分 -->
+    <h2><img class="icon icon-file" alt="">Documents</h2>
+    <a class="pure-button" href="{{ request.app.url_path_for('document_new_route') }}">new document</a>
+    <ul class="mylist">
+        {% if documents %}
+        {% for document in documents %}
+        <li><a href="{{ request.app.url_path_for('document_route', file=document, state=state) }}" target="_blank">{{
+                document|e }}</a></li>
+        {% endfor %}
+        {% endif %}
+    </ul>
+
     {% for db, queries in databases.items() %}
-        <div>
-            <h2><img class="icon icon-db" alt="">{{ db|e }}</h2>
-            <div class="pure-button-group" role="group">
-                <a class="pure-button"  href="{{ request.app.url_path_for('query_route', db=db) }}">new query</a>
-                <a class="pure-button"  href="{{ request.app.url_path_for('db_details_route', db=db) }}">docs</a>
-            </div>
-            <ul class="mylist">
-            {% for query in queries %}
-                <li><a href="{{ request.app.url_path_for('saved_query_route', state=state, db=db, file=query) }}">{{ query|e }}</a></li>
-            {% endfor %}
-            </ul>
+    <div>
+        <h2><img class="icon icon-db" alt="">{{ db|e }}</h2>
+        <div class="pure-button-group" role="group">
+            <a class="pure-button" href="{{ request.app.url_path_for('query_route', db=db) }}">new query</a>
+            <a class="pure-button" href="{{ request.app.url_path_for('db_details_route', db=db) }}">docs</a>
         </div>
+        <ul class="mylist">
+            {% for query in queries %}
+            <li><a href="{{ request.app.url_path_for('saved_query_route', state=state, db=db, file=query) }}">{{ query|e
+                    }}</a></li>
+            {% endfor %}
+        </ul>
+    </div>
     {% endfor %}
 </div>
+
+<style>
+    .icon-file {
+        content: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16"><path fill="none" d="M0 0h24v24H0z"/><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z"/></svg>');
+    }
+</style>

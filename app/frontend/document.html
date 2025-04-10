@@ -1,0 +1,265 @@
+{% extends "base.html" %}
+{% block title %}New Document{% endblock %}
+
+{% block content %}
+<div class="content-wrapper">
+    <div class="header">
+        <h1><img class="icon icon-file" alt="">New Document</h1>
+        <p class="subtitle">Upload a new document template file (.docx)</p>
+    </div>
+
+    <div class="upload-container">
+        <form id="upload-form" class="pure-form pure-form-stacked" enctype="multipart/form-data"
+            hx-post="{{ request.app.url_path_for('document_save_route') }}" hx-target="#upload-result"
+            hx-swap="innerHTML">
+
+            <div class="file-upload-wrapper">
+                <input type="file" id="file" name="file" accept=".docx" required class="file-input">
+                <label for="file" class="file-label">
+                    <span class="file-icon">📄</span>
+                    <span class="file-text">Choose a file or drag it here</span>
+                </label>
+                <div class="file-info" style="display: none;">
+                    Selected file: <span class="file-name"></span>
+                </div>
+            </div>
+
+            <div class="name-input-wrapper">
+                <label for="file_name">Document Name</label>
+                <input type="text" id="file_name" name="file_name" class="pure-input-1"
+                    placeholder="Enter document name">
+                <small>The name will be automatically filled based on the file name, but you can modify it</small>
+            </div>
+
+            <div class="button-wrapper">
+                <button type="submit" class="pure-button pure-button-primary upload-button">
+                    <span class="upload-icon">⬆️</span> Upload Document
+                </button>
+            </div>
+
+            <div id="upload-result"></div>
+        </form>
+    </div>
+</div>
+
+<style>
+    .content-wrapper {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+
+    .header {
+        text-align: center;
+        margin-bottom: 40px;
+    }
+
+    .subtitle {
+        color: #666;
+        margin-top: 10px;
+    }
+
+    .upload-container {
+        background: white;
+        border-radius: 10px;
+        padding: 30px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .file-upload-wrapper {
+        margin-bottom: 30px;
+        text-align: center;
+    }
+
+    .file-input {
+        display: none;
+    }
+
+    .file-label {
+        display: block;
+        padding: 40px 20px;
+        border: 2px dashed #ccc;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .file-label:hover {
+        border-color: #2196F3;
+        background-color: #f8f9fa;
+    }
+
+    .file-icon {
+        font-size: 32px;
+        display: block;
+        margin-bottom: 10px;
+    }
+
+    .file-text {
+        color: #666;
+    }
+
+    .file-info {
+        margin-top: 10px;
+        padding: 10px;
+        background-color: #f8f9fa;
+        border-radius: 4px;
+    }
+
+    .file-name {
+        color: #2196F3;
+        font-weight: bold;
+    }
+
+    .name-input-wrapper {
+        margin-bottom: 30px;
+    }
+
+    .name-input-wrapper input {
+        font-size: 16px;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        transition: border-color 0.3s ease;
+    }
+
+    .name-input-wrapper input:focus {
+        border-color: #2196F3;
+        outline: none;
+    }
+
+    .name-input-wrapper small {
+        display: block;
+        margin-top: 5px;
+        color: #666;
+    }
+
+    .button-wrapper {
+        text-align: center;
+    }
+
+    .upload-button {
+        font-size: 16px;
+        padding: 12px 30px;
+        background-color: #2196F3;
+        color: white;
+        border-radius: 4px;
+        transition: background-color 0.3s ease;
+    }
+
+    .upload-button:hover {
+        background-color: #1976D2;
+    }
+
+    .upload-icon {
+        margin-right: 8px;
+    }
+
+    .success-message {
+        background-color: #d4edda;
+        color: #155724;
+        padding: 15px;
+        margin: 20px 0;
+        border-radius: 4px;
+        border: 1px solid #c3e6cb;
+        text-align: center;
+    }
+
+    .icon {
+        width: 24px;
+        height: 24px;
+        vertical-align: middle;
+        margin-right: 8px;
+    }
+
+    .icon-file {
+        content: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24"><path fill="%232196F3" d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z"/></svg>');
+    }
+</style>
+
+<script type="text/javascript">
+    document.addEventListener('DOMContentLoaded', function () {
+        const fileInput = document.getElementById('file');
+        const fileInfo = document.querySelector('.file-info');
+        const fileName = document.querySelector('.file-name');
+        const fileNameInput = document.getElementById('file_name');
+        const fileText = document.querySelector('.file-text');
+        const defaultText = fileText.textContent;
+
+        // 处理文件选择
+        fileInput.addEventListener('change', function (e) {
+            const file = e.target.files[0];
+            if (file) {
+                // 显示选中的文件名
+                fileName.textContent = file.name;
+                fileInfo.style.display = 'block';
+                fileText.textContent = file.name;
+                fileNameInput.value = file.name;
+            } else {
+                fileInfo.style.display = 'none';
+                fileText.textContent = defaultText;
+            }
+        });
+
+        // 拖拽文件功能
+        const fileLabel = document.querySelector('.file-label');
+
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            fileLabel.addEventListener(eventName, preventDefaults, false);
+        });
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            fileLabel.addEventListener(eventName, highlight, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            fileLabel.addEventListener(eventName, unhighlight, false);
+        });
+
+        function highlight(e) {
+            fileLabel.style.borderColor = '#2196F3';
+            fileLabel.style.backgroundColor = '#f8f9fa';
+        }
+
+        function unhighlight(e) {
+            fileLabel.style.borderColor = '#ccc';
+            fileLabel.style.backgroundColor = '';
+        }
+
+        fileLabel.addEventListener('drop', handleDrop, false);
+
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const file = dt.files[0];
+
+            if (file && file.name.toLowerCase().endsWith('.docx')) {
+                fileInput.files = dt.files;
+                fileName.textContent = file.name;
+                fileInfo.style.display = 'block';
+                fileText.textContent = file.name;
+                fileNameInput.value = file.name;
+            }
+        }
+
+        // 监听上传操作的结果
+        const observer = new MutationObserver(function (mutations) {
+            mutations.forEach(function (mutation) {
+                if (mutation.type === 'childList' && mutation.target.innerHTML.includes('success-message')) {
+                    setTimeout(function () {
+                        window.location.reload();
+                    }, 2000);
+                }
+            });
+        });
+
+        // 监控上传结果
+        observer.observe(document.getElementById('upload-result'), { childList: true });
+    });
+</script>
+
+{% endblock %}

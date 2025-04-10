@@ -6,7 +6,7 @@ from starlette.exceptions import HTTPException
 from starlette.routing import Mount, Route
 from starlette.staticfiles import StaticFiles
 import auth
-import routes_dashboard, routes_execute, routes_listing, routes_query
+import routes_dashboard, routes_execute, routes_listing, routes_query, routes_document
 import utils
 
 
@@ -76,6 +76,21 @@ routes = [
     Route('/dashboard/new',
           endpoint=routes_dashboard.new_route,
           name="dashboard_new_route"),
+    # routes document
+    Route('/document/save',
+          endpoint=routes_document.document_save_route,
+          methods=("POST", ),
+          name="document_save_route"),
+    Route('/document/delete/{file:str}',
+          endpoint=routes_document.document_delete_route,
+          methods=("POST", ),
+          name="document_delete_route"),
+    Route('/document/new',
+          endpoint=routes_document.document_new_route,
+          name="document_new_route"),
+    Route('/document/{file:str}/{state:str}',
+          endpoint=routes_document.document_route,
+          name="document_route"),
     # static
     Mount('/static',
           app=StaticFiles(directory=utils.STATIC_DIR),

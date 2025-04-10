@@ -1,34 +1,24 @@
 {% extends "base.html" %}
 {% block title %}Dashboard | {{ file }}{% endblock %}
 {% block extendhead %}
-    <script src="{{ request.app.url_path_for('static', path='/js/echarts.min.js') }}"></script>
-    <script type="text/javascript">
-        {% include 'js/viz.js' %}
-    </script>
+<script src="{{ request.app.url_path_for('static', path='/js/echarts.min.js') }}"></script>
+<script type="text/javascript">
+    {% include 'js/viz.js' %}
+</script>
 {% endblock %}
 {% block content %}
-    <h1><img class="icon icon-dashboard" alt="">{{ file }}</h1>
-        <div
-        class="pure-button"
-        hx-get="{{ request.app.url_path_for('dashboard_delete_route', file=file) }}"
-        hx-trigger="click"
-        hx-target-error="#htmx-error"
-        hx-swap="innerHTML"
-    >
-        Delete this dashboard
-    </div>
-    <hr>
-    {% for db, query, id in dashboard_conf %}
-    <a
-        class="hidden"
-        hx-get="{{ request.app.url_path_for('report_route', db=db, file=query, state=state, format='dashboard') }}"
-        hx-trigger="load"
-        hx-target="#{{ id }}"
-        hx-target-error="#htmx-error"
-        hx-swap="outerHTML"
-    >
-        Load dashboard
-    </a>
-    <div id="{{ id }}"></div>
-    {% endfor %}
+<h1><img class="icon icon-dashboard" alt="">{{ file }}</h1>
+<div class="pure-button" hx-get="{{ request.app.url_path_for('dashboard_delete_route', file=file) }}" hx-trigger="click"
+    hx-target-error="#htmx-error" hx-swap="innerHTML">
+    Delete this dashboard
+</div>
+<hr>
+{% for db, query, id in dashboard_conf %}
+<a class="hidden"
+    hx-get="{{ request.app.url_path_for('report_route', db=db, file=query, state=state, format='dashboard') }}"
+    hx-trigger="load" hx-target="#{{ id }}" hx-target-error="#htmx-error" hx-swap="outerHTML">
+    Load dashboard
+</a>
+<div id="{{ id }}"></div>
+{% endfor %}
 {% endblock %}
