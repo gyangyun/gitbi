@@ -249,26 +249,41 @@
             <div id="{{ echart_id }}"></div>
             <script type="text/javascript">
                 // 初始化图表配置
-                document.addEventListener('DOMContentLoaded', function () {
+                function initChartOptions() {
                     try {
+                        console.log('Initializing chart options with viz:', '{{ viz|safe }}');
                         var chart_options = JSON.parse('{{ viz|safe }}');
-                        if (chart_options) {
+
+                        if (chart_options && typeof chart_options === 'object') {
+                            console.log('Parsed chart options:', chart_options);
+
                             // 设置图表类型
-                            document.getElementById('echart-options-type').value = chart_options.type;
+                            var typeSelect = document.getElementById('echart-options-type');
+                            if (typeSelect && chart_options.type) {
+                                typeSelect.value = chart_options.type;
+                                console.log('Set chart type:', chart_options.type);
+                            }
 
                             // 设置坐标轴和分组选项
                             ['xaxis', 'yaxis', 'zaxis', 'group'].forEach(axis => {
                                 var select = document.getElementById(`echart-options-${axis}`);
                                 if (select && chart_options[axis]) {
                                     select.value = chart_options[axis];
+                                    console.log(`Set ${axis}:`, chart_options[axis]);
                                 }
                             });
+                        } else {
+                            console.log('No valid chart options found');
                         }
                     } catch (error) {
                         console.error('Failed to parse chart options:', error);
                     }
-                });
+                }
 
+                // 在页面加载完成后初始化图表配置
+                document.addEventListener('DOMContentLoaded', initChartOptions);
+
+                // 在数据更新时重新渲染图表
                 var chart_el = document.getElementById('{{ echart_id }}');
                 chart_el.addEventListener("newdata", (e) => {
                     current_data = e.detail.data;
