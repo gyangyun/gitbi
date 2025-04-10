@@ -1,7 +1,13 @@
 var chart_id = '{{ echart_id }}'
 var current_data = null;
 var initial_viz = true;
-var saved_viz = {{ viz }};
+var saved_viz = null;
+
+try {
+    saved_viz = JSON.parse('{{ viz|safe }}');
+} catch (error) {
+    console.error('Failed to parse saved viz:', error);
+}
 
 function array_ident(arr1, arr2) {
     // https://stackoverflow.com/a/19746771

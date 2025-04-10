@@ -250,20 +250,23 @@
             <script type="text/javascript">
                 // 初始化图表配置
                 document.addEventListener('DOMContentLoaded', function () {
-                    var chart_options = {{ viz }
-                };
-                if (chart_options) {
-                    // 设置图表类型
-                    document.getElementById('echart-options-type').value = chart_options.type;
+                    try {
+                        var chart_options = JSON.parse('{{ viz|safe }}');
+                        if (chart_options) {
+                            // 设置图表类型
+                            document.getElementById('echart-options-type').value = chart_options.type;
 
-                    // 设置坐标轴和分组选项
-                    ['xaxis', 'yaxis', 'zaxis', 'group'].forEach(axis => {
-                        var select = document.getElementById(`echart-options-${axis}`);
-                        if (select && chart_options[axis]) {
-                            select.value = chart_options[axis];
+                            // 设置坐标轴和分组选项
+                            ['xaxis', 'yaxis', 'zaxis', 'group'].forEach(axis => {
+                                var select = document.getElementById(`echart-options-${axis}`);
+                                if (select && chart_options[axis]) {
+                                    select.value = chart_options[axis];
+                                }
+                            });
                         }
-                    });
-                }
+                    } catch (error) {
+                        console.error('Failed to parse chart options:', error);
+                    }
                 });
 
                 var chart_el = document.getElementById('{{ echart_id }}');
