@@ -10,6 +10,29 @@
     {% include 'js/viz_control.js' %}
 </script>
 <style>
+    .section-title {
+        font-size: 24px;
+        color: #333;
+        margin: 30px 0 20px;
+        padding-bottom: 10px;
+        border-bottom: 2px solid #eee;
+    }
+
+    .config-section {
+        background: #fff;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        margin-bottom: 30px;
+    }
+
+    .result-section {
+        background: #fff;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
     .variable-row {
         margin-bottom: 8px;
         display: flex;
@@ -55,25 +78,32 @@
     .success-message.fade-out {
         opacity: 0;
     }
+
+    .subsection {
+        margin-bottom: 20px;
+    }
+
+    .subsection-title {
+        font-size: 16px;
+        color: #666;
+        margin-bottom: 10px;
+    }
 </style>
 <script>
     // 自动隐藏消息的函数
     function autoHideMessage(messageEl) {
         if (!messageEl) return;
 
-        // 2秒后开始淡出
         setTimeout(() => {
             messageEl.classList.add('fade-out');
         }, 2000);
 
-        // 2.5秒后移除内容
         setTimeout(() => {
             messageEl.innerHTML = '';
             messageEl.classList.remove('fade-out');
         }, 2500);
     }
 
-    // 监听消息元素的变化
     document.addEventListener('DOMContentLoaded', function () {
         const observer = new MutationObserver((mutations) => {
             mutations.forEach((mutation) => {
@@ -98,102 +128,152 @@
 {% block content %}
 <h1><img class="icon icon-db" alt="">{{ db|e }}{% if file != "__empty__" %} | {{ file }}{% endif %}</h1>
 {% if file != "__empty__" %}{% include 'partial_query_links.html' %}{% endif %}
-<div class="bottom-margin">
-    <label for="query-editor">Query</label>
-    <div id="query-editor" class="text-result code-editor language-sql">{{ query }}</div>
-    <div class="variables-container">
-        <div class="variables-title">Template Variables</div>
-        <div id="variables-container">
-            <!-- Variables will be populated here -->
+
+<!-- 配置区域 -->
+<h2 class="section-title">配置区域</h2>
+<div class="config-section">
+    <!-- SQL模板编辑区域 -->
+    <div class="subsection">
+        <div class="subsection-title">SQL模板编辑</div>
+        <div id="query-editor" class="text-result code-editor language-sql">{{ query }}</div>
+        <div class="variables-container">
+            <div class="variables-title">模板变量</div>
+            <div id="variables-container">
+                <!-- Variables will be populated here -->
+            </div>
         </div>
     </div>
-</div>
-<div class="bottom-margin">
-    <label for="data-template-editor">Data Description Template (Optional)</label>
-    <div id="data-template-editor" class="text-result code-editor"
-        placeholder="Enter your data description template here...">{{ template }}</div>
-    <small>Leave empty if no template is needed</small>
-</div>
-<form class="pure-form pure-form-stacked">
-    <div class="bottom-margin">
-        <label for="file-name">Query file name</label>
-        <input type="text" id="file-name" name="file-name" placeholder="Enter file name"
-            value="{% if file != '__empty__' %}{{ file }}{% endif %}">
-        <small>Query name must have <em>.sql</em> or <em>.prql</em> extension</small>
+
+    <!-- 数据描述模板编辑区域 -->
+    <div class="subsection">
+        <div class="subsection-title">数据描述模板编辑（可选）</div>
+        <div id="data-template-editor" class="text-result code-editor"
+            placeholder="Enter your data description template here...">{{ template }}</div>
+        <small>如果不需要模板可以留空</small>
     </div>
-    <div class="bottom-margin">
-        <label for="result-format">Result format</label>
-        <select id="result-format" required>
-            <option value="interactive-table" selected>Interactive table</option>
-            <option value="simple-table">Standard table</option>
-            <option value="text">ASCII table</option>
-            <option value="csv">CSV</option>
-            <option value="json">JSON</option>
-        </select>
-    </div>
-</form>
-<div class="pure-button-group bottom-margin" role="group">
-    <div class="pure-button" hx-post="{{ request.app.url_path_for('execute_route', db=db) }}"
-        hx-vals="js:{data: execute_query_format()}" hx-trigger="click" hx-target="#query-result"
-        hx-target-error="#htmx-error" hx-swap="innerHTML">
-        Run
-    </div>
-    <div class="pure-button" hx-post="{{ request.app.url_path_for('query_save_route', db=db) }}"
-        hx-vals="js:{data: save_query_format()}" hx-trigger="click" hx-target="#save-message" hx-swap="innerHTML">
-        Save query
-    </div>
-    <div class="pure-button" onclick="generate_link()">
-        Generate share link
-    </div>
-    {% if file != "__empty__" %}
-    <div class="pure-button" hx-get="{{ request.app.url_path_for('query_delete_route', db=db, file=file) }}"
-        hx-trigger="click" hx-target-error="#htmx-error" hx-swap="innerHTML">
-        Delete query
-    </div>
-    {% endif %}
-</div>
-<div id="save-message"></div>
-<div>
-    <h2>Result</h2>
-    <div id="query-result">
-        <p>No data available</p>
-        <p class="htmx-indicator" aria-busy="true">Running query...</p>
-    </div>
-    <div id="template-result" class="bottom-margin">
-        <h3>Template Rendering Result</h3>
-        <div class="text-result">
-            <pre><code id="template-render-result">No data available</code></pre>
-        </div>
-    </div>
-    <h2>Visualization</h2>
-    <div id="echart-note">No data available</div>
-    <div id="echart-chart" class="hidden">
-        <form id="echart-options" class="pure-form pure-form-stacked bottom-margin">
+
+    <!-- 图表配置区域 -->
+    <div class="subsection">
+        <div class="subsection-title">图表配置</div>
+        <form id="echart-options" class="pure-form pure-form-stacked">
             <label for="echart-options-type">
-                Chart type
+                图表类型
                 <select id="echart-options-type">
-                    <option value="scatter">Scatter</option>
-                    <option value="line" selected>Line</option>
-                    <option value="bar">Bar</option>
-                    <option value="heatmap">Heatmap</option>
+                    <option value="scatter">散点图</option>
+                    <option value="line" selected>折线图</option>
+                    <option value="bar">柱状图</option>
+                    <option value="heatmap">热力图</option>
                 </select>
             </label>
-            <label for="echart-options-xaxis">X axis<select id="echart-options-xaxis"></select></label>
-            <label for="echart-options-yaxis">Y axis<select id="echart-options-yaxis"></select></label>
-            <label for="echart-options-zaxis">Z axis<select id="echart-options-zaxis"></select></label>
-            <label for="echart-options-group">Group<select id="echart-options-group"></select></label>
-            <button id="echart-render" type="button" class="pure-button" onclick="make_viz()">Render chart</button>
+            <label for="echart-options-xaxis">X轴<select id="echart-options-xaxis"></select></label>
+            <label for="echart-options-yaxis">Y轴<select id="echart-options-yaxis"></select></label>
+            <label for="echart-options-zaxis">Z轴<select id="echart-options-zaxis"></select></label>
+            <label for="echart-options-group">分组<select id="echart-options-group"></select></label>
         </form>
-        <div id="{{ echart_id }}"></div>
-        <script type="text/javascript">
-            var chart_options = {{ viz }};
-            var chart_el = document.getElementById('{{ echart_id }}');
-            chart_el.addEventListener("newdata", (e) => {
-                current_data = e.detail.data;
-                update_chart_options();
-                make_viz();
-            });
-        </script>
+    </div>
+
+    <!-- 保存配置区域 -->
+    <div class="subsection">
+        <div class="subsection-title">保存配置</div>
+        <form class="pure-form pure-form-stacked">
+            <div class="bottom-margin">
+                <label for="file-name">查询文件名</label>
+                <input type="text" id="file-name" name="file-name" placeholder="输入文件名"
+                    value="{% if file != '__empty__' %}{{ file }}{% endif %}">
+                <small>文件名必须以 <em>.sql</em> 或 <em>.prql</em> 结尾</small>
+            </div>
+            <div class="bottom-margin">
+                <label for="result-format">结果格式</label>
+                <select id="result-format" required>
+                    <option value="interactive-table" selected>交互式表格</option>
+                    <option value="simple-table">标准表格</option>
+                    <option value="text">ASCII表格</option>
+                    <option value="csv">CSV</option>
+                    <option value="json">JSON</option>
+                </select>
+            </div>
+        </form>
+    </div>
+
+    <!-- 操作按钮 -->
+    <div class="pure-button-group" role="group">
+        <div class="pure-button" hx-post="{{ request.app.url_path_for('execute_route', db=db) }}"
+            hx-vals="js:{data: execute_query_format()}" hx-trigger="click" hx-target="#query-result"
+            hx-target-error="#htmx-error" hx-swap="innerHTML">
+            执行查询
+        </div>
+        <div class="pure-button" hx-post="{{ request.app.url_path_for('query_save_route', db=db) }}"
+            hx-vals="js:{data: save_query_format()}" hx-trigger="click" hx-target="#save-message" hx-swap="innerHTML">
+            保存查询
+        </div>
+        <div class="pure-button" onclick="generate_link()">
+            生成分享链接
+        </div>
+        {% if file != "__empty__" %}
+        <div class="pure-button" hx-get="{{ request.app.url_path_for('query_delete_route', db=db, file=file) }}"
+            hx-trigger="click" hx-target-error="#htmx-error" hx-swap="innerHTML">
+            删除查询
+        </div>
+        {% endif %}
+    </div>
+    <div id="save-message"></div>
+</div>
+
+<!-- 结果展示区域 -->
+<h2 class="section-title">结果展示</h2>
+<div class="result-section">
+    <!-- SQL查询结果 -->
+    <div class="subsection">
+        <div class="subsection-title">SQL查询结果</div>
+        <div id="query-result">
+            <p>暂无数据</p>
+            <p class="htmx-indicator" aria-busy="true">正在执行查询...</p>
+        </div>
+    </div>
+
+    <!-- 模板渲染结果 -->
+    <div class="subsection">
+        <div id="template-result">
+            <div class="subsection-title">模板渲染结果</div>
+            <div class="text-result">
+                <pre><code id="template-render-result">暂无数据</code></pre>
+            </div>
+        </div>
+    </div>
+
+    <!-- 图表展示 -->
+    <div class="subsection">
+        <div class="subsection-title">图表展示</div>
+        <div id="echart-note">暂无数据</div>
+        <div id="echart-chart" class="hidden">
+            <div id="{{ echart_id }}"></div>
+            <script type="text/javascript">
+                // 初始化图表配置
+                document.addEventListener('DOMContentLoaded', function () {
+                    var chart_options = {{ viz }
+                };
+                if (chart_options) {
+                    // 设置图表类型
+                    document.getElementById('echart-options-type').value = chart_options.type;
+
+                    // 设置坐标轴和分组选项
+                    ['xaxis', 'yaxis', 'zaxis', 'group'].forEach(axis => {
+                        var select = document.getElementById(`echart-options-${axis}`);
+                        if (select && chart_options[axis]) {
+                            select.value = chart_options[axis];
+                        }
+                    });
+                }
+                });
+
+                var chart_el = document.getElementById('{{ echart_id }}');
+                chart_el.addEventListener("newdata", (e) => {
+                    current_data = e.detail.data;
+                    update_chart_options();
+                    make_viz();
+                });
+            </script>
+        </div>
     </div>
 </div>
 {% endblock %}

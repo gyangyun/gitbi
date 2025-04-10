@@ -79,6 +79,11 @@ async def saved_query_route(request):
         query_str, _lang = repo.get_query(**request.path_params)
         viz_str = repo.get_query_viz(**request.path_params)
         template_str = repo.get_query_template(**request.path_params)
+        print('---------------读取文件-----------------')
+        print('query_str', query_str)
+        print('viz_str', viz_str)
+        print('template_str', template_str)
+        print('---------------------------------------')
         request.state.query_data = {
             "query": query_str,
             "viz": viz_str,

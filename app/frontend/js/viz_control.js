@@ -19,9 +19,10 @@ function get_chart_options() {
 }
 window.get_chart_options = get_chart_options;
 function update_chart_options() {
-    var select_ids = ['echart-options-xaxis', 'echart-options-yaxis', 'echart-options-zaxis', 'echart-options-group',];
+    var select_ids = ['echart-options-xaxis', 'echart-options-yaxis', 'echart-options-zaxis', 'echart-options-group'];
     var headings = Array.from(document.getElementById(select_ids[0]).getElementsByTagName('option')).map((node) => node.value)
     var new_headings = ['_NONE',].concat(current_data.headings);
+
     if (!array_ident(headings, new_headings)) {
         select_ids.forEach(id => {
             var columns = new_headings.map((name) => {
@@ -32,15 +33,15 @@ function update_chart_options() {
             })
             document.getElementById(id).replaceChildren(...columns);
         });
-        if (initial_viz) {
+
+        if (initial_viz && saved_viz) {
             initial_viz = false;
-            if (saved_viz !== null) {
-                document.getElementById('echart-options-type').value = saved_viz.type;
-                document.getElementById('echart-options-xaxis').value = saved_viz.xaxis;
-                document.getElementById('echart-options-yaxis').value = saved_viz.yaxis;
-                document.getElementById('echart-options-zaxis').value = saved_viz.zaxis;
-                document.getElementById('echart-options-group').value = saved_viz.group;
-            }
+            // 应用保存的配置
+            document.getElementById('echart-options-type').value = saved_viz.type;
+            document.getElementById('echart-options-xaxis').value = saved_viz.xaxis;
+            document.getElementById('echart-options-yaxis').value = saved_viz.yaxis;
+            document.getElementById('echart-options-zaxis').value = saved_viz.zaxis;
+            document.getElementById('echart-options-group').value = saved_viz.group;
         } else {
             select_ids.forEach(id => {
                 document.getElementById(id).value = "_NONE";
