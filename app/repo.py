@@ -101,6 +101,18 @@ def get_query_viz(state, db, file):
     return viz_str
 
 
+def get_query_template(state, db, file):
+    """
+    Gets saved template for given query
+    """
+    try:
+        template_path = os.path.join(db, f"{file}.txt")
+        template_str = _get_file_content(state, template_path)
+    except:
+        template_str = ""  # 如果没有模板文件则返回空字符串
+    return template_str
+
+
 def get_dashboard(state, file):
     """
     Get dashboard content from repo
@@ -249,7 +261,7 @@ def delete_dashboard(user, file):
     return True
 
 
-def save_query(user, db, file, query, viz):
+def save_query(user, db, file, query, viz, template):
     """
     Save query into repo
     file refers to query file name
@@ -258,16 +270,40 @@ def save_query(user, db, file, query, viz):
     assert file == path_obj.name, "Path passed"
     assert (path_obj.suffix in VALID_QUERY_EXTENSIONS
             ), f"Extension not in {str(VALID_QUERY_EXTENSIONS)}"
+
     query_path = f"{db}/{file}"
     viz_path = f"{query_path}.json"
+    template_path = f"{query_path}.txt"
+
     to_commit = [
         query_path,
         viz_path,
     ]
+
     assert _write_file_content(query_path,
                                query), "Writing query content failed"
     assert _write_file_content(viz_path, viz), "Writing viz content failed"
+
+    # 只有在有模板内容时才保存模板文件
+    if template.strip():
+        assert _write_file_content(template_path,
+                                   template), "Writing template content failed"
+        to_commit.append(template_path)
+    else:
+        # 如果模板为空且文件存在，则删除文件
+        try:
+            _remove_file(template_path)
+            to_commit.append(template_path)  # 添加到提交列表以记录删除操作
+        except:
+            pass  # 如果文件不存在则忽略
+
     _commit(user, "save", to_commit)
+    print('--------------保存文件----------------')
+    print('query:', query)
+    print('viz:', viz)
+    print('template:', template)
+    print('to_commit:', to_commit)
+    print('-------------------------------------')
     return True
 
 

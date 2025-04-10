@@ -34,6 +34,7 @@ async def execute_route(request):
             "duration": duration_ms,
             "data_json": data_json,
             "echart_id": query_data["echart_id"],
+            "template": query_data.get("template", ""),
         }
         match format:
             case "interactive-table" | "simple-table":

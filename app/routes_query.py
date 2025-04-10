@@ -39,15 +39,11 @@ async def save_route(request):
             file=data["file"],
             query=data["query"],
             viz=data["viz"],
+            template=data["template"],
         )
-        redirect_url = request.app.url_path_for("saved_query_route",
-                                                db=request.path_params['db'],
-                                                file=data['file'],
-                                                state="HEAD")
-        headers = {"HX-Redirect": redirect_url}
-        response = PlainTextResponse(content="OK",
-                                     headers=headers,
-                                     status_code=200)
+        response = PlainTextResponse(
+            content='<div class="success-message">查询已保存成功！</div>',
+            status_code=200)
     except Exception as e:
         status_code = 404 if isinstance(e, RuntimeError) else 500
         raise HTTPException(status_code=status_code, detail=str(e))
@@ -82,15 +78,16 @@ async def saved_query_route(request):
     try:
         query_str, _lang = repo.get_query(**request.path_params)
         viz_str = repo.get_query_viz(**request.path_params)
+        template_str = repo.get_query_template(**request.path_params)
         request.state.query_data = {
             "query": query_str,
             "viz": viz_str,
+            "template": template_str,
             **request.path_params,  # db, file, state
         }
     except RuntimeError as e:
         raise HTTPException(status_code=404, detail=str(e))
     else:
-
         return await _query(request)
 
 

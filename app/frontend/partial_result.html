@@ -6,14 +6,42 @@
 {# table also contains js script that replaces current data in document #}
 {{ table }}
 <script type="text/javascript">
-    try {
-        var echart_id = '{{ echart_id }}';
-        var data = {{ data_json }};
-        var new_data = new CustomEvent("newdata", {detail: {data: Object.assign({}, data)}});
-        document.getElementById(echart_id).dispatchEvent(new_data);
-    } catch (error) {
-        console.error(`Failed to update viz`);
-        console.error(error);
-        alert(error)
-    }
+    (function () {
+        try {
+            var echart_id = '{{ echart_id }}';
+            var data = JSON.parse('{{ data_json|safe }}');
+
+            // 更新模板渲染结果
+            const templateEditor = document.getElementById('data-template-editor');
+            const templateResult = document.getElementById('template-render-result');
+
+            console.log('templateEditor:', templateEditor);
+            console.log('data:', data);
+
+            if (templateResult && templateEditor) {
+                let displayText = '';
+                const template = templateEditor.textContent.trim();
+
+                if (template) {
+                    displayText = '模板：\n' + template + '\n\n';
+                    displayText += '数据：\n' + JSON.stringify(data, null, 2);  // 格式化JSON显示
+                    templateResult.textContent = displayText;
+                    document.getElementById('template-result').style.display = 'block';
+                } else {
+                    templateResult.textContent = 'No template available';
+                    document.getElementById('template-result').style.display = 'none';
+                }
+            }
+
+            // 更新图表数据
+            var new_data = new CustomEvent("newdata", {
+                detail: {
+                    data: Object.assign({}, data)
+                }
+            });
+            document.getElementById(echart_id).dispatchEvent(new_data);
+        } catch (error) {
+            console.error('Failed to update viz:', error);
+        }
+    })();
 </script>

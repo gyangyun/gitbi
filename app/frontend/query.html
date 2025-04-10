@@ -39,7 +39,60 @@
         color: #666;
         margin-bottom: 10px;
     }
+
+    .success-message {
+        color: #155724;
+        background-color: #d4edda;
+        border: 1px solid #c3e6cb;
+        padding: 10px 15px;
+        margin: 10px 0;
+        border-radius: 4px;
+        display: inline-block;
+        opacity: 1;
+        transition: opacity 0.5s ease-in-out;
+    }
+
+    .success-message.fade-out {
+        opacity: 0;
+    }
 </style>
+<script>
+    // 自动隐藏消息的函数
+    function autoHideMessage(messageEl) {
+        if (!messageEl) return;
+
+        // 2秒后开始淡出
+        setTimeout(() => {
+            messageEl.classList.add('fade-out');
+        }, 2000);
+
+        // 2.5秒后移除内容
+        setTimeout(() => {
+            messageEl.innerHTML = '';
+            messageEl.classList.remove('fade-out');
+        }, 2500);
+    }
+
+    // 监听消息元素的变化
+    document.addEventListener('DOMContentLoaded', function () {
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                if (mutation.target.id === 'save-message' && mutation.target.innerHTML) {
+                    autoHideMessage(mutation.target);
+                }
+            });
+        });
+
+        const saveMessage = document.getElementById('save-message');
+        if (saveMessage) {
+            observer.observe(saveMessage, {
+                childList: true,
+                characterData: true,
+                subtree: true
+            });
+        }
+    });
+</script>
 {% endblock %}
 {% block title %}Query | {{ db|e }}{% if file != "__empty__" %}| {{ file }}{% endif %}{% endblock %}
 {% block content %}
@@ -54,6 +107,12 @@
             <!-- Variables will be populated here -->
         </div>
     </div>
+</div>
+<div class="bottom-margin">
+    <label for="data-template-editor">Data Description Template (Optional)</label>
+    <div id="data-template-editor" class="text-result code-editor"
+        placeholder="Enter your data description template here...">{{ template }}</div>
+    <small>Leave empty if no template is needed</small>
 </div>
 <form class="pure-form pure-form-stacked">
     <div class="bottom-margin">
@@ -80,7 +139,7 @@
         Run
     </div>
     <div class="pure-button" hx-post="{{ request.app.url_path_for('query_save_route', db=db) }}"
-        hx-vals="js:{data: save_query_format()}" hx-trigger="click" hx-target-error="#htmx-error" hx-swap="innerHTML">
+        hx-vals="js:{data: save_query_format()}" hx-trigger="click" hx-target="#save-message" hx-swap="innerHTML">
         Save query
     </div>
     <div class="pure-button" onclick="generate_link()">
@@ -93,11 +152,18 @@
     </div>
     {% endif %}
 </div>
+<div id="save-message"></div>
 <div>
     <h2>Result</h2>
     <div id="query-result">
         <p>No data available</p>
         <p class="htmx-indicator" aria-busy="true">Running query...</p>
+    </div>
+    <div id="template-result" class="bottom-margin">
+        <h3>Template Rendering Result</h3>
+        <div class="text-result">
+            <pre><code id="template-render-result">No data available</code></pre>
+        </div>
     </div>
     <h2>Visualization</h2>
     <div id="echart-note">No data available</div>

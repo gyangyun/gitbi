@@ -10,6 +10,12 @@ const jar = CodeJar(editor, (editor) => {
     hljs.highlightElement(editor);
 });
 
+// 初始化数据描述模板编辑器
+const templateEditor = document.querySelector('#data-template-editor');
+const templateJar = CodeJar(templateEditor, (editor) => {
+    editor.textContent = editor.textContent;
+});
+
 function extractVariables(query) {
     // 匹配包括引号内的变量
     console.log('Query:', query); // 调试：打印原始查询
@@ -64,9 +70,33 @@ function replaceVariables(query, variables) {
     return result;
 }
 
-// 用于执行查询的格式化函数
+// 修改保存查询的格式化函数
+window.save_query_format = function () {
+    const query = jar.toString();  // 获取原始SQL模板
+    const template = templateJar.toString(); // 获取数据描述模板
+    const fileName = document.getElementById('file-name').value;
+    const format = document.getElementById('result-format').value;
+
+    // 获取可视化配置
+    const viz = window.get_chart_options ? JSON.stringify(window.get_chart_options()) : 'null';
+    const echart_id = document.querySelector('#echart-chart div[id^="echart-"]')?.id || '';
+
+    console.log('save_query_format');
+    console.log(query, fileName, format, viz, echart_id, template);
+    return JSON.stringify({
+        query: query,  // 保存原始SQL模板
+        template: template, // 保存数据描述模板
+        file: fileName,
+        format: format,
+        viz: viz,
+        echart_id: echart_id
+    });
+}
+
+// 修改执行查询的格式化函数
 window.execute_query_format = function () {
     const query = jar.toString();
+    const template = templateJar.toString(); // 获取数据描述模板
     const fileName = document.getElementById('file-name').value;
     const format = document.getElementById('result-format').value;
     const variables = getVariables();
@@ -80,27 +110,7 @@ window.execute_query_format = function () {
 
     return JSON.stringify({
         query: finalQuery,
-        file: fileName,
-        format: format,
-        viz: viz,
-        echart_id: echart_id
-    });
-}
-
-// 用于保存查询的格式化函数
-window.save_query_format = function () {
-    const query = jar.toString();  // 获取原始SQL模板
-    const fileName = document.getElementById('file-name').value;
-    const format = document.getElementById('result-format').value;
-
-    // 获取可视化配置
-    const viz = window.get_chart_options ? JSON.stringify(window.get_chart_options()) : 'null';
-    const echart_id = document.querySelector('#echart-chart div[id^="echart-"]')?.id || '';
-
-    console.log('save_query_format');
-    console.log(query, fileName, format, viz, echart_id);
-    return JSON.stringify({
-        query: query,  // 保存原始SQL模板
+        template: template, // 包含数据描述模板
         file: fileName,
         format: format,
         viz: viz,

@@ -25,18 +25,27 @@ def parse_query_data(request, form):
     Parses and validates query data generated from query_format()
     app/frontend/js/code_editor.js
     query, user, viz: string
+    template: optional string
     """
     data = json.loads(form["data"])
     data["file"] = data["file"].strip()
-    for key in (
-            "query",
-            "viz",
-            "echart_id",
-            "file",
-            "format",
-    ):
+
+    # 必填字段验证
+    required_keys = (
+        "query",
+        "viz",
+        "echart_id",
+        "file",
+        "format",
+    )
+    for key in required_keys:
         assert key in data.keys(), f"No {key} in POST data"
         assert data[key] != "", f"Empty {key} string"
+
+    # template 是选填的，如果没有提供则设为空字符串
+    if "template" not in data:
+        data["template"] = ""
+
     data["user"] = common_context_args(request).get("user")
     return data
 
@@ -115,18 +124,18 @@ def get_data_json(headers, rows):
     """
     Convert data to json
     """
-    if rows:
-        dtypes = tuple(_data_convert(el)[1] for el in rows[0])
-    else:
-        dtypes = tuple(None for _ in headers)
-    headers = tuple(_data_convert(el)[0] for el in headers)
-    rows = tuple(tuple(_data_convert(el)[0] for el in row) for row in rows)
-    return json.dumps({
-        "headings": headers,
-        "data": rows,
-        "dtypes": dtypes
-    },
-                      default=str)
+    try:
+        if rows:
+            dtypes = tuple(_data_convert(el)[1] for el in rows[0])
+        else:
+            dtypes = tuple(None for _ in headers)
+        headers = tuple(_data_convert(el)[0] for el in headers)
+        rows = tuple(tuple(_data_convert(el)[0] for el in row) for row in rows)
+        data = {"headings": headers, "data": rows, "dtypes": dtypes}
+        return json.dumps(data, default=str, ensure_ascii=False)
+    except Exception as e:
+        print(f"Error formatting data: {str(e)}")
+        return json.dumps({"headings": [], "data": [], "dtypes": []})
 
 
 def _data_convert(el):
