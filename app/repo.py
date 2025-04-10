@@ -313,6 +313,7 @@ def delete_query(user, db, file):
     """
     query_path = f"{db}/{file}"
     viz_path = f"{query_path}.json"
+    template_path = f"{query_path}.txt"
     to_commit = [
         query_path,
     ]
@@ -323,6 +324,15 @@ def delete_query(user, db, file):
         pass
     else:
         to_commit.append(viz_path)
+
+    # 尝试删除模板文件
+    try:
+        _remove_file(template_path)
+    except:
+        pass
+    else:
+        to_commit.append(template_path)
+
     #TODO: if fails error not caught, not recoverable in Gitbi, one needs to checkout manually
     _commit(user, "delete", to_commit)
     return True
