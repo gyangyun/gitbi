@@ -91,6 +91,12 @@ routes = [
     Route('/document/{file:str}/{state:str}',
           endpoint=routes_document.document_route,
           name="document_route"),
+    Route('/document/view/{file:str}/{state:str}',
+          endpoint=routes_document.document_view_route,
+          name="document_view_route"),
+    Route('/document/download/{file:str}/{state:str}',
+          endpoint=routes_document.document_download_route,
+          name="document_download_route"),
     # static
     Mount('/static',
           app=StaticFiles(directory=utils.STATIC_DIR),

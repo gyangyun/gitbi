@@ -10,11 +10,25 @@
 
     <!-- 修改文档管理部分 -->
     <h2><img class="icon icon-file" alt="">Documents</h2>
-    <a class="pure-button" href="{{ request.app.url_path_for('document_new_route') }}">new document</a>
+    <div class="pure-button-group document-actions" role="group">
+        <a class="pure-button" href="{{ request.app.url_path_for('document_new_route') }}">新建文档</a>
+    </div>
+
+    <!-- 上传文档表单 -->
+    <div id="upload-document-form" style="display:none; margin: 10px 0;">
+        <form action="{{ request.app.url_path_for('document_save_route') }}" method="post"
+            enctype="multipart/form-data">
+            <input type="file" name="file" accept=".txt,.md,.docx" required>
+            <input type="text" name="file_name" placeholder="文档名称（可选）">
+            <button type="submit" class="pure-button">上传</button>
+            <button type="button" class="pure-button" onclick="toggleUploadForm()">取消</button>
+        </form>
+    </div>
+
     <ul class="mylist">
         {% if documents %}
         {% for document in documents %}
-        <li><a href="{{ request.app.url_path_for('document_route', file=document, state=state) }}" target="_blank">{{
+        <li><a href="{{ request.app.url_path_for('document_view_route', file=document, state=state) }}">{{
                 document|e }}</a></li>
         {% endfor %}
         {% endif %}
@@ -41,4 +55,21 @@
     .icon-file {
         content: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16"><path fill="none" d="M0 0h24v24H0z"/><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z"/></svg>');
     }
+
+    .document-actions {
+        display: flex;
+        margin-bottom: 10px;
+    }
+
+    .document-actions a,
+    .document-actions button {
+        margin-right: 5px;
+    }
 </style>
+
+<script>
+    function toggleUploadForm() {
+        const form = document.getElementById('upload-document-form');
+        form.style.display = form.style.display === 'none' || !form.style.display ? 'block' : 'none';
+    }
+</script>

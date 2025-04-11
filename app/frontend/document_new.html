@@ -1,0 +1,668 @@
+{% extends "base.html" %}
+{% block title %}新建文档{% endblock %}
+
+{% block extendhead %}
+<!-- 引入编辑器需要的库 -->
+<!-- SimpleMDE - Markdown编辑器 -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/simplemde/latest/simplemde.min.css">
+<script src="https://cdn.jsdelivr.net/simplemde/latest/simplemde.min.js"></script>
+<!-- CKEditor - 富文本编辑器 -->
+<script src="https://cdn.ckeditor.com/4.16.0/standard/ckeditor.js"></script>
+
+<style>
+    .document-container {
+        max-width: 1000px;
+        margin: 20px auto;
+        padding: 30px;
+        background-color: white;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        border-radius: 8px;
+    }
+
+    .document-header {
+        margin-bottom: 20px;
+        text-align: center;
+        padding-bottom: 15px;
+        border-bottom: 1px solid #eee;
+    }
+
+    .document-title {
+        font-size: 24px;
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 10px;
+    }
+
+    .document-description {
+        color: #666;
+        margin-bottom: 20px;
+        text-align: center;
+    }
+
+    .method-buttons {
+        display: flex;
+        justify-content: center;
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+
+    .method-button {
+        padding: 15px 25px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        background-color: #f9f9f9;
+        cursor: pointer;
+        transition: all 0.3s;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        width: 200px;
+    }
+
+    .method-button:hover {
+        background-color: #f0f0f0;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .method-button.active {
+        background-color: #e8f5e9;
+        border-color: #4CAF50;
+    }
+
+    .method-button-icon {
+        font-size: 36px;
+        margin-bottom: 10px;
+        color: #4CAF50;
+    }
+
+    .method-button-title {
+        font-weight: 600;
+        margin-bottom: 5px;
+    }
+
+    .method-button-desc {
+        font-size: 12px;
+        color: #666;
+        text-align: center;
+    }
+
+    .method-content {
+        display: none;
+        margin-top: 20px;
+    }
+
+    .method-content.active {
+        display: block;
+    }
+
+    .form-group {
+        margin-bottom: 15px;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: 600;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 8px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+    }
+
+    .editor-container {
+        min-height: 400px;
+        margin-bottom: 20px;
+    }
+
+    .actions {
+        margin-top: 20px;
+        text-align: right;
+    }
+
+    .btn {
+        padding: 8px 16px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+        margin-left: 10px;
+    }
+
+    .btn-primary {
+        background-color: #4CAF50;
+        color: white;
+    }
+
+    .btn-secondary {
+        background-color: #f5f5f5;
+        color: #333;
+        border: 1px solid #ddd;
+    }
+
+    .message {
+        margin: 10px 0;
+        padding: 10px;
+        border-radius: 4px;
+        text-align: center;
+    }
+
+    .success-message {
+        background-color: #dff0d8;
+        color: #3c763d;
+        border: 1px solid #d6e9c6;
+    }
+
+    .error-message {
+        background-color: #f2dede;
+        color: #a94442;
+        border: 1px solid #ebccd1;
+    }
+
+    .file-upload-area {
+        border: 2px dashed #ddd;
+        border-radius: 8px;
+        padding: 40px 20px;
+        text-align: center;
+        margin-bottom: 20px;
+        transition: all 0.3s;
+        cursor: pointer;
+    }
+
+    .file-upload-area:hover,
+    .file-upload-area.dragover {
+        background-color: #f9f9f9;
+        border-color: #4CAF50;
+    }
+
+    .file-upload-icon {
+        font-size: 48px;
+        color: #4CAF50;
+        margin-bottom: 15px;
+    }
+
+    .file-upload-text {
+        margin-bottom: 15px;
+    }
+
+    .upload-progress {
+        display: none;
+        margin-top: 20px;
+    }
+
+    .progress-bar {
+        height: 10px;
+        background-color: #e0e0e0;
+        border-radius: 5px;
+        margin-bottom: 5px;
+        overflow: hidden;
+    }
+
+    .progress-bar-fill {
+        height: 100%;
+        background-color: #4CAF50;
+        width: 0%;
+        transition: width 0.3s;
+    }
+
+    .progress-text {
+        font-size: 12px;
+        color: #666;
+    }
+
+    .uploaded-file-info {
+        display: none;
+        margin-top: 20px;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        background-color: #f9f9f9;
+    }
+
+    .file-name {
+        font-weight: 600;
+    }
+
+    .file-type {
+        color: #666;
+        font-size: 12px;
+    }
+
+    .file-controls {
+        margin-top: 10px;
+    }
+
+    .type-selector {
+        display: flex;
+        margin-bottom: 20px;
+        border-bottom: 1px solid #eee;
+        padding-bottom: 10px;
+    }
+
+    .type-option {
+        padding: 8px 16px;
+        margin-right: 10px;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+
+    .type-option:hover {
+        background-color: #f0f0f0;
+    }
+
+    .type-option.active {
+        background-color: #e8f5e9;
+        color: #4CAF50;
+        font-weight: 600;
+    }
+</style>
+
+<script>
+    let markdownEditor = null;
+    let richTextEditor = null;
+    let selectedType = 'txt'; // 默认文档类型
+    let uploadedFile = null;
+
+    // 在页面加载完成后初始化
+    document.addEventListener('DOMContentLoaded', function () {
+        // 初始化方法选择按钮
+        setupMethodButtons();
+
+        // 初始化拖放上传
+        setupDragAndDrop();
+
+        // 初始化编辑器 (默认)
+        initEditor();
+
+        // 文档类型选择器
+        setupTypeOptions();
+    });
+
+    function setupMethodButtons() {
+        const buttons = document.querySelectorAll('.method-button');
+        const contents = document.querySelectorAll('.method-content');
+
+        buttons.forEach(button => {
+            button.addEventListener('click', () => {
+                // 移除所有活动状态
+                buttons.forEach(b => b.classList.remove('active'));
+                contents.forEach(c => c.classList.remove('active'));
+
+                // 添加新的活动状态
+                button.classList.add('active');
+                const target = button.getAttribute('data-target');
+                document.getElementById(target).classList.add('active');
+            });
+        });
+
+        // 默认选中上传方式
+        document.querySelector('.method-button[data-target="upload-method"]').click();
+    }
+
+    function setupDragAndDrop() {
+        const uploadArea = document.getElementById('file-upload-area');
+        const fileInput = document.getElementById('file-input');
+
+        // 点击上传区域触发文件选择
+        uploadArea.addEventListener('click', () => {
+            fileInput.click();
+        });
+
+        // 文件拖放事件
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+
+            if (e.dataTransfer.files.length > 0) {
+                fileInput.files = e.dataTransfer.files;
+                handleFileSelect();
+            }
+        });
+
+        // 文件选择事件
+        fileInput.addEventListener('change', handleFileSelect);
+    }
+
+    function handleFileSelect() {
+        const fileInput = document.getElementById('file-input');
+        const uploadedFileInfo = document.getElementById('uploaded-file-info');
+        const fileNameElement = document.getElementById('file-name');
+        const fileTypeElement = document.getElementById('file-type');
+        const uploadProgress = document.getElementById('upload-progress');
+
+        if (fileInput.files.length > 0) {
+            const file = fileInput.files[0];
+            uploadedFile = file;
+
+            // 显示文件信息
+            fileNameElement.textContent = file.name;
+
+            // 确定文件类型
+            let fileType = "未知类型";
+            if (file.name.toLowerCase().endsWith('.docx')) {
+                fileType = "Microsoft Word 文档 (.docx)";
+            } else if (file.name.toLowerCase().endsWith('.md')) {
+                fileType = "Markdown 文档 (.md)";
+            } else if (file.name.toLowerCase().endsWith('.txt')) {
+                fileType = "文本文档 (.txt)";
+            }
+
+            fileTypeElement.textContent = fileType;
+
+            // 显示文件信息区域
+            uploadedFileInfo.style.display = 'block';
+
+            // 模拟上传进度 (仅视觉效果)
+            uploadProgress.style.display = 'block';
+            const progressFill = document.querySelector('.progress-bar-fill');
+            const progressText = document.querySelector('.progress-text');
+
+            progressFill.style.width = '0%';
+            let progress = 0;
+
+            const interval = setInterval(() => {
+                progress += 10;
+                progressFill.style.width = progress + '%';
+                progressText.textContent = '准备上传... ' + progress + '%';
+
+                if (progress >= 100) {
+                    clearInterval(interval);
+                    progressText.textContent = '文件已就绪';
+                    setTimeout(() => {
+                        uploadProgress.style.display = 'none';
+                    }, 1000);
+                }
+            }, 50);
+
+            // 设置文档名称输入框的默认值为文件名(不含扩展名)
+            const fileName = file.name.split('.').slice(0, -1).join('.');
+            document.getElementById('upload-document-name').value = fileName;
+        }
+    }
+
+    function setupTypeOptions() {
+        const typeOptions = document.querySelectorAll('.type-option');
+
+        typeOptions.forEach(option => {
+            option.addEventListener('click', () => {
+                // 移除所有活动状态
+                typeOptions.forEach(o => o.classList.remove('active'));
+
+                // 添加新的活动状态
+                option.classList.add('active');
+                selectedType = option.getAttribute('data-type');
+
+                // 切换编辑器类型
+                switchEditor(selectedType);
+            });
+        });
+    }
+
+    function initEditor() {
+        const textArea = document.getElementById('editor-content');
+
+        // 初始化富文本编辑器 (默认)
+        CKEDITOR.replace('editor-content', {
+            height: 400
+        });
+        richTextEditor = CKEDITOR.instances['editor-content'];
+    }
+
+    function switchEditor(type) {
+        const content = getEditorContent();
+
+        // 清除现有编辑器
+        if (richTextEditor) {
+            richTextEditor.destroy();
+            richTextEditor = null;
+        }
+
+        if (markdownEditor) {
+            markdownEditor.toTextArea();
+            markdownEditor = null;
+        }
+
+        // 创建新编辑器
+        if (type === 'md') {
+            markdownEditor = new SimpleMDE({
+                element: document.getElementById('editor-content'),
+                spellChecker: false
+            });
+            markdownEditor.value(content);
+        } else {
+            CKEDITOR.replace('editor-content', {
+                height: 400
+            });
+            richTextEditor = CKEDITOR.instances['editor-content'];
+            richTextEditor.setData(content);
+        }
+    }
+
+    function getEditorContent() {
+        if (markdownEditor) {
+            return markdownEditor.value();
+        } else if (richTextEditor) {
+            return richTextEditor.getData();
+        }
+        return document.getElementById('editor-content').value;
+    }
+
+    async function uploadDocument(event) {
+        event.preventDefault();
+
+        if (!uploadedFile) {
+            showMessage('<div class="error-message">请选择要上传的文件</div>');
+            return;
+        }
+
+        const documentName = document.getElementById('upload-document-name').value.trim();
+
+        try {
+            const formData = new FormData();
+
+            // 如果指定了文档名，使用指定的名称，否则使用原始文件名
+            let fileName = documentName || uploadedFile.name;
+            formData.append('file_name', fileName);
+            formData.append('file', uploadedFile);
+
+            const response = await fetch('{{ request.app.url_path_for("document_save_route") }}', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (response.ok) {
+                const message = await response.text();
+                showMessage(message);
+
+                // 上传成功后跳转
+                setTimeout(() => {
+                    window.location.href = '{{ request.app.url_path_for("home_default_route") }}';
+                }, 1500);
+            } else {
+                const errorText = await response.text();
+                let errorMessage;
+                try {
+                    const errorData = JSON.parse(errorText);
+                    errorMessage = errorData.detail || '上传失败';
+                } catch (e) {
+                    errorMessage = errorText || '上传失败';
+                }
+                throw new Error(errorMessage);
+            }
+        } catch (error) {
+            console.error('上传文件时出错:', error);
+            showMessage('<div class="error-message">上传文件失败: ' + error.message + '</div>');
+        }
+    }
+
+    async function saveDocument(event) {
+        event.preventDefault();
+
+        const documentName = document.getElementById('editor-document-name').value.trim();
+        if (!documentName) {
+            showMessage('<div class="error-message">请输入文档名称</div>');
+            return;
+        }
+
+        // 获取内容
+        const content = getEditorContent();
+
+        // 构建文件名
+        let fileName = documentName;
+        if (!fileName.toLowerCase().endsWith('.' + selectedType)) {
+            fileName += '.' + selectedType;
+        }
+
+        // 发送到服务器
+        try {
+            const formData = new FormData();
+            formData.append('file_name', fileName);
+            formData.append('content', content);
+            formData.append('selected_type', selectedType);
+
+            const response = await fetch('{{ request.app.url_path_for("document_save_route") }}', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (response.ok) {
+                const message = await response.text();
+                showMessage(message);
+
+                // 保存成功后跳转
+                setTimeout(() => {
+                    window.location.href = '{{ request.app.url_path_for("home_default_route") }}';
+                }, 1500);
+            } else {
+                const errorText = await response.text();
+                let errorMessage;
+                try {
+                    const errorData = JSON.parse(errorText);
+                    errorMessage = errorData.detail || '保存失败';
+                } catch (e) {
+                    errorMessage = errorText || '保存失败';
+                }
+                throw new Error(errorMessage);
+            }
+        } catch (error) {
+            console.error('保存文档时出错:', error);
+            showMessage('<div class="error-message">保存文档失败: ' + error.message + '</div>');
+        }
+    }
+
+    function showMessage(message) {
+        const messageDiv = document.getElementById('message');
+        if (messageDiv) {
+            messageDiv.innerHTML = message;
+            messageDiv.scrollIntoView({ behavior: 'smooth' });
+            setTimeout(() => {
+                messageDiv.innerHTML = '';
+            }, 3000);
+        } else {
+            console.error('找不到消息显示区域');
+        }
+    }
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="document-container">
+    <div class="document-header">
+        <h1 class="document-title">新建文档</h1>
+    </div>
+
+    <div class="document-description">
+        请选择创建文档的方式，你可以上传现有文档或使用编辑器新建文档
+    </div>
+
+    <div id="message" class="message"></div>
+
+    <!-- 方法选择按钮 -->
+    <div class="method-buttons">
+        <div class="method-button" data-target="upload-method">
+            <div class="method-button-icon">📤</div>
+            <div class="method-button-title">上传文档</div>
+            <div class="method-button-desc">上传现有的文档文件</div>
+        </div>
+        <div class="method-button" data-target="editor-method">
+            <div class="method-button-icon">📝</div>
+            <div class="method-button-title">编辑器创建</div>
+            <div class="method-button-desc">使用编辑器创建新文档</div>
+        </div>
+    </div>
+
+    <!-- 上传文档方式 -->
+    <div id="upload-method" class="method-content">
+        <form id="upload-form" enctype="multipart/form-data">
+            <div id="file-upload-area" class="file-upload-area">
+                <div class="file-upload-icon">📄</div>
+                <div class="file-upload-text">点击或拖放文件到此处上传</div>
+                <div>支持 .txt, .md, .docx 文件格式</div>
+                <input type="file" id="file-input" style="display: none;" accept=".txt,.md,.docx">
+            </div>
+
+            <div id="upload-progress" class="upload-progress">
+                <div class="progress-bar">
+                    <div class="progress-bar-fill"></div>
+                </div>
+                <div class="progress-text">准备上传...</div>
+            </div>
+
+            <div id="uploaded-file-info" class="uploaded-file-info">
+                <div class="file-name" id="file-name"></div>
+                <div class="file-type" id="file-type"></div>
+            </div>
+
+            <div class="form-group">
+                <label for="upload-document-name">文档名称（可选，默认使用文件名）</label>
+                <input type="text" id="upload-document-name" class="form-control" placeholder="输入文档名称，不含扩展名">
+            </div>
+
+            <div class="actions">
+                <button type="button" class="btn btn-secondary" onclick="window.history.back()">取消</button>
+                <button type="button" class="btn btn-primary" onclick="uploadDocument(event)">上传文档</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- 编辑器创建方式 -->
+    <div id="editor-method" class="method-content">
+        <form id="editor-form">
+            <div class="form-group">
+                <label for="editor-document-name">文档名称</label>
+                <input type="text" id="editor-document-name" class="form-control" placeholder="输入文档名称，不含扩展名" required>
+            </div>
+
+            <div class="type-selector">
+                <div class="type-option active" data-type="txt">文本文档</div>
+                <div class="type-option" data-type="md">Markdown</div>
+            </div>
+
+            <div class="form-group">
+                <label for="editor-content">文档内容</label>
+                <div class="editor-container">
+                    <textarea id="editor-content" class="form-control"></textarea>
+                </div>
+            </div>
+
+            <div class="actions">
+                <button type="button" class="btn btn-secondary" onclick="window.history.back()">取消</button>
+                <button type="button" class="btn btn-primary" onclick="saveDocument(event)">保存文档</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -11,6 +11,7 @@ from pathlib import Path
 from pygit2 import Repository, Signature
 import utils
 from config import config
+import glob
 
 # 从配置文件获取仓库目录
 DIR = config.get_repo_dir()
@@ -385,7 +386,14 @@ def _get_file_content(state, path):
     try:
         match state:
             case 'file':
-                with open(os.path.join(DIR, path), "r") as f:
+                # 检查是否是文档路径
+                if not path.startswith(DOCUMENTS_DIR):
+                    full_path = os.path.join(DIR, path)
+                else:
+                    # 对于文档，直接使用完整路径
+                    full_path = os.path.join(DIR, path)
+
+                with open(full_path, "r", encoding="utf-8") as f:
                     content = f.read()
             case hash:
                 commit = REPO.revparse_single(hash)
@@ -444,45 +452,75 @@ def _commit(user, operation, files):
 
 
 # 添加文档模板相关函数
-def list_documents(state="file"):
+def _get_files_dir(state=None):
     """
-    列出所有可用的文档模板
+    根据state获取文件目录
+    """
+    if state is None or state == 'file':
+        # 本地文件模式
+        return DOCUMENTS_FULL_PATH
+    else:
+        # Git模式
+        try:
+            commit = REPO.revparse_single(state)
+            return os.path.join(GIT_DIR, DOCUMENTS_DIR)
+        except Exception as e:
+            print_error(f"无法获取文件目录: {e}")
+            return DOCUMENTS_FULL_PATH
+
+
+def list_documents(state=None):
+    """
+    List all documents in repo
     """
     try:
-        match state:
-            case 'file':
-                # 确保目录存在
-                if not os.path.exists(DOCUMENTS_FULL_PATH):
-                    os.makedirs(DOCUMENTS_FULL_PATH)
-                documents = _list_file_names(DOCUMENTS_FULL_PATH)
-                documents = [f for f in documents if f.endswith('.docx')]
-            case hash:
-                # 从Git仓库中读取
-                commit = REPO.revparse_single(hash)
+        if state is None or state == 'file':
+            # 本地文件模式
+            if not os.path.exists(DOCUMENTS_FULL_PATH):
+                os.makedirs(DOCUMENTS_FULL_PATH)
+            documents_pattern = os.path.join(DOCUMENTS_FULL_PATH, "*")
+            docs = sorted(glob.glob(documents_pattern))
+            # 筛选出所有文档类型文件: .txt, .md, .docx
+            docs = [
+                os.path.basename(f) for f in docs
+                if os.path.isfile(f) and (f.endswith('.txt') or f.endswith(
+                    '.md') or f.endswith('.docx'))
+            ]
+            return docs
+        else:
+            # 从Git仓库中读取
+            try:
+                commit = REPO.revparse_single(state)
                 documents = []
                 for path in (
                         Path(el)
                         for el in _get_tree_objects_generator(commit.tree)):
                     if len(path.parts) == 2 and str(
-                            path.parent
-                    ) == DOCUMENTS_DIR and path.name.endswith('.docx'):
+                            path.parent) == DOCUMENTS_DIR and (
+                                path.name.endswith('.txt')
+                                or path.name.endswith('.md')
+                                or path.name.endswith('.docx')):
                         documents.append(path.name)
-
-        return sorted(documents)  # 返回排序后的列表
+                return sorted(documents)
+            except Exception as e:
+                print_error(f"从Git获取文档失败: {e}")
+                return []
     except Exception as e:
-        logging.warning(f"无法列出文档: {str(e)}")
-        return []  # 返回空列表
+        print_error(f"Could not list documents: {e}")
+        return []
 
 
 def save_document(user, file_name, file_content):
     """
-    保存文档模板
+    保存文档到仓库
     user: 用户名
-    file_name: 文件名（应该以.docx结尾）
+    file_name: 文件名（可以是.txt、.md或.docx）
     file_content: 文件内容（二进制）
     """
-    if not file_name.endswith('.docx'):
-        file_name = f"{file_name}.docx"
+    # 检查文件名是否有扩展名，如果没有则添加默认扩展名.txt
+    if not (file_name.endswith('.txt') or file_name.endswith('.md')
+            or file_name.endswith('.docx')):
+        file_name = f"{file_name}.txt"
 
     document_path = f"{DOCUMENTS_DIR}/{file_name}"
 
@@ -525,14 +563,41 @@ def get_document_path(file_name):
     """
     获取文档模板的完整路径
     """
-    if not file_name.endswith('.docx'):
-        file_name = f"{file_name}.docx"
+    try:
+        # 构建文档路径
+        document_path = os.path.join(DOCUMENTS_DIR, file_name)
+        full_path = os.path.join(DIR, document_path)
 
-    document_path = os.path.join(DIR, f"{DOCUMENTS_DIR}/{file_name}")
+        # 尝试直接查找
+        if os.path.exists(full_path):
+            return document_path
 
-    if os.path.exists(document_path):
-        return document_path
-    else:
+        # 如果没找到，尝试列出所有文件，进行不区分大小写的比较
+        try:
+            import urllib.parse
+            decoded_name = urllib.parse.unquote(file_name)
+
+            # 如果解码后的文件名不同，尝试使用解码后的名称
+            if decoded_name != file_name:
+                alt_path = os.path.join(DOCUMENTS_DIR, decoded_name)
+                full_alt_path = os.path.join(DIR, alt_path)
+                if os.path.exists(full_alt_path):
+                    return alt_path
+
+            # 尝试不区分大小写匹配
+            all_files = os.listdir(os.path.join(DIR, DOCUMENTS_DIR))
+            lower_name = file_name.lower()
+            for f in all_files:
+                if f.lower() == lower_name:
+                    return os.path.join(DOCUMENTS_DIR, f)
+        except Exception as e:
+            print(f"Error in alternative file lookup: {str(e)}")
+            # 忽略备选查找中的错误
+
+        # 没有找到匹配的文件
+        return None
+    except Exception as e:
+        print(f"Error in get_document_path: {str(e)}")
         return None
 
 

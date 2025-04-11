@@ -1,0 +1,1007 @@
+{% extends "base.html" %}
+{% block title %}文档查看 - {{ document_name }}{% endblock %}
+
+{% block extendhead %}
+<!-- 引入编辑器需要的库 -->
+<!-- SimpleMDE - Markdown编辑器 -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/simplemde/latest/simplemde.min.css">
+<script src="https://cdn.jsdelivr.net/simplemde/latest/simplemde.min.js"></script>
+<!-- CKEditor - 富文本编辑器 -->
+<script src="https://cdn.ckeditor.com/4.16.0/standard/ckeditor.js"></script>
+<!-- Highlight.js - 代码高亮 -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.5.1/styles/default.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.5.1/highlight.min.js"></script>
+<!-- Marked - Markdown解析器 -->
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+<style>
+    .document-container {
+        max-width: 1000px;
+        margin: 20px auto;
+        padding: 30px;
+        background-color: white;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        border-radius: 8px;
+    }
+
+    .document-header {
+        margin-bottom: 20px;
+        padding-bottom: 15px;
+        border-bottom: 1px solid #eee;
+    }
+
+    .document-title {
+        font-size: 24px;
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 5px;
+        text-align: center;
+    }
+
+    .document-meta {
+        font-size: 14px;
+        color: #666;
+        text-align: center;
+    }
+
+    /* 文档视图模式 */
+    .mode-container {
+        position: relative;
+    }
+
+    .mode {
+        display: none;
+    }
+
+    .mode.active {
+        display: block;
+    }
+
+    /* 查看模式 */
+    .view-mode .document-content {
+        min-height: 400px;
+        padding: 20px;
+        background-color: white;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        line-height: 1.6;
+    }
+
+    /* 编辑模式 */
+    .edit-mode .editor-container {
+        margin-bottom: 20px;
+    }
+
+    /* 上传模式 */
+    .upload-area {
+        border: 2px dashed #ddd;
+        border-radius: 8px;
+        padding: 40px 20px;
+        text-align: center;
+        margin-bottom: 20px;
+        transition: all 0.3s;
+        cursor: pointer;
+    }
+
+    .upload-area:hover,
+    .upload-area.dragover {
+        background-color: #f9f9f9;
+        border-color: #2196F3;
+    }
+
+    .upload-icon {
+        font-size: 48px;
+        color: #2196F3;
+        margin-bottom: 15px;
+    }
+
+    .upload-text {
+        margin-bottom: 15px;
+    }
+
+    /* 预览标签页 */
+    .preview-tabs {
+        display: flex;
+        border-bottom: 1px solid #ddd;
+        margin-bottom: 15px;
+    }
+
+    .preview-tab {
+        padding: 8px 16px;
+        cursor: pointer;
+        border: 1px solid transparent;
+        border-bottom: none;
+        margin-bottom: -1px;
+        border-radius: 5px 5px 0 0;
+    }
+
+    .preview-tab.active {
+        border-color: #ddd;
+        background-color: white;
+        border-bottom: 1px solid white;
+    }
+
+    .preview-content {
+        display: none;
+        padding: 20px;
+        border: 1px solid #ddd;
+        border-top: none;
+        border-radius: 0 0 5px 5px;
+        min-height: 400px;
+    }
+
+    .preview-content.active {
+        display: block;
+    }
+
+    /* 保存为新文档 */
+    .saveas-form {
+        padding: 20px;
+        background-color: #f9f9f9;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        margin-bottom: 20px;
+    }
+
+    .form-group {
+        margin-bottom: 15px;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: 600;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 8px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+    }
+
+    /* 按钮和操作区域 */
+    .document-actions {
+        display: flex;
+        justify-content: center;
+        margin-top: 20px;
+    }
+
+    .btn {
+        margin: 0 8px;
+        padding: 8px 16px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s;
+    }
+
+    .btn-icon {
+        margin-right: 5px;
+        font-size: 16px;
+    }
+
+    .btn-primary {
+        background-color: #4CAF50;
+        color: white;
+    }
+
+    .btn-primary:hover {
+        background-color: #45a049;
+    }
+
+    .btn-secondary {
+        background-color: #2196F3;
+        color: white;
+    }
+
+    .btn-secondary:hover {
+        background-color: #1976D2;
+    }
+
+    .btn-warning {
+        background-color: #FF9800;
+        color: white;
+    }
+
+    .btn-warning:hover {
+        background-color: #F57C00;
+    }
+
+    .btn-danger {
+        background-color: #f44336;
+        color: white;
+    }
+
+    .btn-danger:hover {
+        background-color: #d32f2f;
+    }
+
+    .btn-light {
+        background-color: #f5f5f5;
+        color: #333;
+        border: 1px solid #ddd;
+    }
+
+    .btn-light:hover {
+        background-color: #e0e0e0;
+    }
+
+    .btn-purple {
+        background-color: #9C27B0;
+        color: white;
+    }
+
+    .btn-purple:hover {
+        background-color: #7B1FA2;
+    }
+
+    /* 消息提示 */
+    .message {
+        margin: 10px 0;
+        padding: 10px;
+        border-radius: 4px;
+        text-align: center;
+    }
+
+    .success-message {
+        background-color: #dff0d8;
+        color: #3c763d;
+        border: 1px solid #d6e9c6;
+    }
+
+    .error-message {
+        background-color: #f2dede;
+        color: #a94442;
+        border: 1px solid #ebccd1;
+    }
+
+    /* 已上传文件信息 */
+    .uploaded-file-info {
+        display: none;
+        margin-top: 20px;
+        padding: 15px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        background-color: #f9f9f9;
+    }
+
+    .file-name {
+        font-weight: 600;
+    }
+
+    .file-type {
+        color: #666;
+        font-size: 12px;
+    }
+
+    /* Markdown 渲染样式 */
+    .markdown-content h1,
+    .markdown-content h2,
+    .markdown-content h3,
+    .markdown-content h4,
+    .markdown-content h5,
+    .markdown-content h6 {
+        margin-top: 1em;
+        margin-bottom: 0.5em;
+        color: #333;
+    }
+
+    .markdown-content p {
+        margin-bottom: 1em;
+    }
+
+    .markdown-content ul,
+    .markdown-content ol {
+        padding-left: 2em;
+        margin-bottom: 1em;
+    }
+
+    .markdown-content code {
+        background-color: #f5f5f5;
+        padding: 2px 4px;
+        border-radius: 3px;
+        font-family: monospace;
+    }
+
+    .markdown-content pre {
+        background-color: #f5f5f5;
+        padding: 1em;
+        border-radius: 5px;
+        overflow-x: auto;
+    }
+
+    .markdown-content blockquote {
+        border-left: 4px solid #ddd;
+        padding-left: 1em;
+        color: #666;
+        margin-left: 0;
+    }
+
+    .markdown-content img {
+        max-width: 100%;
+        height: auto;
+    }
+
+    .markdown-content a {
+        color: #0366d6;
+        text-decoration: none;
+    }
+
+    .markdown-content a:hover {
+        text-decoration: underline;
+    }
+
+    .markdown-content table {
+        border-collapse: collapse;
+        width: 100%;
+        margin-bottom: 1em;
+    }
+
+    .markdown-content th,
+    .markdown-content td {
+        border: 1px solid #ddd;
+        padding: 8px;
+    }
+
+    .markdown-content tr:nth-child(even) {
+        background-color: #f2f2f2;
+    }
+</style>
+
+<script>
+    // 当前模式（view: 查看, edit: 编辑, upload: 上传）
+    let currentMode = 'view';
+    let documentType = '';
+    let originalContent = '';
+    let markdownEditor = null;
+    let richTextEditor = null;
+    let uploadedFile = null;
+
+    // 初始化函数
+    function initializePage() {
+        // 重置所有状态
+        currentMode = 'view';
+        documentType = getDocumentType();
+        originalContent = '';
+        markdownEditor = null;
+        richTextEditor = null;
+        uploadedFile = null;
+
+        console.log('初始化文档页面 - 模式:', currentMode, '类型:', documentType);
+
+        // 初始化文档页面
+        initDocument();
+
+        // 移除所有模式的active类
+        document.querySelectorAll('.mode').forEach(el => {
+            el.classList.remove('active');
+        });
+
+        // 设置初始模式为view
+        const viewMode = document.getElementById('view-mode');
+        if (viewMode) {
+            viewMode.classList.add('active');
+        }
+
+        // 更新按钮状态
+        updateActionButtons();
+    }
+
+    // 在页面加载时初始化
+    function initPage() {
+        // 初始化页面
+        initializePage();
+    }
+
+    // 在页面加载时初始化
+    document.addEventListener('DOMContentLoaded', initPage);
+    if (document.readyState === 'complete') {
+        initPage();
+    }
+
+    // 初始化文档页面
+    function initDocument() {
+        // 初始化内容
+        const contentDiv = document.getElementById('view-content');
+        if (contentDiv) {
+            originalContent = contentDiv.innerHTML;
+
+            // 如果是Markdown，渲染为HTML
+            if (documentType === 'markdown') {
+                contentDiv.classList.add('markdown-content');
+                const markdownText = contentDiv.textContent || contentDiv.getAttribute('data-original');
+                contentDiv.innerHTML = marked.parse(markdownText);
+
+                // 代码高亮
+                document.querySelectorAll('pre code').forEach((block) => {
+                    hljs.highlightBlock(block);
+                });
+            }
+        }
+
+        // 设置按钮事件
+        setupEventListeners();
+    }
+
+    // 获取文档类型
+    function getDocumentType() {
+        const fileName = '{{ document_name }}';
+        const docTypeText = '{{ document_type }}';
+
+        if (fileName.toLowerCase().endsWith('.md') || docTypeText.toLowerCase().includes('markdown')) {
+            return 'markdown';
+        } else if (fileName.toLowerCase().endsWith('.docx') || docTypeText.toLowerCase().includes('docx') || docTypeText.toLowerCase().includes('word')) {
+            return 'docx';
+        } else {
+            return 'txt';
+        }
+    }
+
+    // 设置所有事件监听器
+    function setupEventListeners() {
+        // 按钮事件监听
+        document.getElementById('edit-btn')?.addEventListener('click', () => handleModeChange('edit'));
+        document.getElementById('upload-btn')?.addEventListener('click', () => handleModeChange('upload'));
+        document.getElementById('save-btn')?.addEventListener('click', handleSave);
+        document.getElementById('saveas-btn')?.addEventListener('click', toggleSaveAsForm);
+        document.getElementById('cancel-btn')?.addEventListener('click', () => handleModeChange('view'));
+
+        // 保存为新文档表单
+        document.getElementById('saveas-form')?.addEventListener('submit', handleSaveAs);
+
+        // 上传区域事件
+        setupUploadArea();
+
+        // 预览标签页
+        setupPreviewTabs();
+    }
+
+    // 设置预览标签页切换
+    function setupPreviewTabs() {
+        const tabs = document.querySelectorAll('.preview-tab');
+        const contents = document.querySelectorAll('.preview-content');
+
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                // 移除所有活动状态
+                tabs.forEach(t => t.classList.remove('active'));
+                contents.forEach(c => c.classList.remove('active'));
+
+                // 添加新的活动状态
+                tab.classList.add('active');
+                const targetId = tab.getAttribute('data-target');
+                document.getElementById(targetId).classList.add('active');
+            });
+        });
+    }
+
+    // 设置文件上传区域
+    function setupUploadArea() {
+        const uploadArea = document.getElementById('upload-area');
+        const fileInput = document.getElementById('file-input');
+
+        if (!uploadArea || !fileInput) return;
+
+        // 点击上传区域触发文件选择
+        uploadArea.addEventListener('click', () => {
+            fileInput.click();
+        });
+
+        // 文件拖放事件
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+
+            if (e.dataTransfer.files.length > 0) {
+                fileInput.files = e.dataTransfer.files;
+                handleFileSelect();
+            }
+        });
+
+        // 文件选择事件
+        fileInput.addEventListener('change', handleFileSelect);
+
+        // 上传提交按钮
+        document.getElementById('upload-submit-btn')?.addEventListener('click', handleUpload);
+    }
+
+    // 切换模式
+    function handleModeChange(mode) {
+        setMode(mode);
+
+        if (mode === 'edit') {
+            initEditor();
+        } else if (mode === 'view') {
+            destroyEditors();
+        }
+    }
+
+    // 设置当前模式
+    function setMode(mode) {
+        currentMode = mode;
+
+        // 隐藏所有模式
+        document.querySelectorAll('.mode').forEach(el => {
+            el.classList.remove('active');
+        });
+
+        // 显示当前模式
+        document.getElementById(`${mode}-mode`)?.classList.add('active');
+
+        // 更新按钮状态
+        updateActionButtons();
+    }
+
+    // 更新操作按钮显示
+    function updateActionButtons() {
+        const editBtn = document.getElementById('edit-btn');
+        const uploadBtn = document.getElementById('upload-btn');
+        const saveBtn = document.getElementById('save-btn');
+        const saveasBtn = document.getElementById('saveas-btn');
+        const cancelBtn = document.getElementById('cancel-btn');
+        const downloadBtn = document.getElementById('download-btn');
+
+        // 确保所有按钮元素存在
+        if (!editBtn || !uploadBtn || !saveBtn || !saveasBtn || !cancelBtn || !downloadBtn) {
+            console.error('某些按钮元素不存在');
+            return;
+        }
+
+        // 重置所有按钮为隐藏状态
+        [editBtn, uploadBtn, saveBtn, saveasBtn, cancelBtn, downloadBtn].forEach(btn => {
+            btn.style.display = 'none';
+        });
+
+        // 根据当前模式显示按钮
+        switch (currentMode) {
+            case 'view':
+                downloadBtn.style.display = 'inline-flex';
+                if (documentType === 'docx') {
+                    uploadBtn.style.display = 'inline-flex';
+                } else {
+                    editBtn.style.display = 'inline-flex';
+                }
+                break;
+            case 'edit':
+                saveBtn.style.display = 'inline-flex';
+                saveasBtn.style.display = 'inline-flex';
+                cancelBtn.style.display = 'inline-flex';
+                break;
+            case 'upload':
+                cancelBtn.style.display = 'inline-flex';
+                break;
+            default:
+                console.error('未知的模式:', currentMode);
+        }
+    }
+
+    // 初始化编辑器
+    function initEditor() {
+        if (documentType === 'markdown') {
+            initMarkdownEditor();
+        } else {
+            initRichTextEditor();
+        }
+
+        // 默认显示编辑标签
+        document.querySelector('.preview-tab[data-target="edit-content"]')?.click();
+    }
+
+    // 初始化Markdown编辑器
+    function initMarkdownEditor() {
+        const textArea = document.getElementById('markdown-editor');
+        if (!textArea) return;
+
+        // 获取原始Markdown内容
+        textArea.value = document.getElementById('view-content').getAttribute('data-original') ||
+            document.getElementById('view-content').textContent;
+
+        // 创建Markdown编辑器
+        markdownEditor = new SimpleMDE({
+            element: textArea,
+            spellChecker: false,
+            autofocus: true
+        });
+
+        // 监听内容变化，更新预览
+        markdownEditor.codemirror.on('change', updateMarkdownPreview);
+
+        // 初始化预览
+        updateMarkdownPreview();
+    }
+
+    // 更新Markdown预览
+    function updateMarkdownPreview() {
+        if (!markdownEditor) return;
+
+        const previewEl = document.getElementById('preview-rendered');
+        if (!previewEl) return;
+
+        const markdown = markdownEditor.value();
+        previewEl.innerHTML = marked.parse(markdown);
+
+        // 代码高亮
+        document.querySelectorAll('#preview-rendered pre code').forEach((block) => {
+            hljs.highlightBlock(block);
+        });
+    }
+
+    // 初始化富文本编辑器
+    function initRichTextEditor() {
+        const textArea = document.getElementById('richtext-editor');
+        if (!textArea) return;
+
+        // 创建富文本编辑器
+        CKEDITOR.replace('richtext-editor', {
+            height: 400
+        });
+
+        richTextEditor = CKEDITOR.instances['richtext-editor'];
+
+        // 设置原始内容
+        const content = document.getElementById('view-content').innerHTML;
+        richTextEditor.setData(content);
+
+        // 编辑器内容变化时更新预览
+        richTextEditor.on('change', updateRichTextPreview);
+
+        // 初始化预览
+        updateRichTextPreview();
+    }
+
+    // 更新富文本预览
+    function updateRichTextPreview() {
+        if (!richTextEditor) return;
+
+        const previewEl = document.getElementById('preview-rendered');
+        if (!previewEl) return;
+
+        previewEl.innerHTML = richTextEditor.getData();
+    }
+
+    // 销毁编辑器
+    function destroyEditors() {
+        if (markdownEditor) {
+            markdownEditor.toTextArea();
+            markdownEditor = null;
+        }
+
+        if (richTextEditor) {
+            richTextEditor.destroy();
+            richTextEditor = null;
+        }
+    }
+
+    // 获取编辑器内容
+    function getEditorContent() {
+        if (documentType === 'markdown' && markdownEditor) {
+            return markdownEditor.value();
+        } else if (richTextEditor) {
+            return richTextEditor.getData();
+        }
+        return '';
+    }
+
+    // 处理文件选择
+    function handleFileSelect() {
+        const fileInput = document.getElementById('file-input');
+        const uploadedFileInfo = document.getElementById('uploaded-file-info');
+        const fileNameElement = document.getElementById('file-name');
+        const fileTypeElement = document.getElementById('file-type');
+
+        if (!fileInput || !fileInput.files.length) return;
+
+        const file = fileInput.files[0];
+        uploadedFile = file;
+
+        // 显示文件信息
+        fileNameElement.textContent = file.name;
+
+        // 确定文件类型
+        let fileType = "未知类型";
+        const currentDocType = documentType;
+
+        // 检查文件类型是否匹配
+        if (currentDocType === 'docx' && !file.name.toLowerCase().endsWith('.docx')) {
+            showMessage('<div class="error-message">请上传DOCX文档文件</div>');
+            uploadedFile = null;
+            return;
+        }
+
+        if (file.name.toLowerCase().endsWith('.docx')) {
+            fileType = "Microsoft Word 文档 (.docx)";
+        } else if (file.name.toLowerCase().endsWith('.md')) {
+            fileType = "Markdown 文档 (.md)";
+        } else if (file.name.toLowerCase().endsWith('.txt')) {
+            fileType = "文本文档 (.txt)";
+        }
+
+        fileTypeElement.textContent = fileType;
+        uploadedFileInfo.style.display = 'block';
+    }
+
+    // 上传文档
+    async function handleUpload() {
+        if (!uploadedFile) {
+            showMessage('<div class="error-message">请选择要上传的文件</div>');
+            return;
+        }
+
+        try {
+            const formData = new FormData();
+            formData.append('file_name', '{{ document_name }}');
+            formData.append('file', uploadedFile);
+
+            const response = await fetch('{{ request.app.url_path_for("document_save_route") }}', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (response.ok) {
+                const message = await response.text();
+                showMessage(message);
+
+                // 上传成功后刷新页面
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1500);
+            } else {
+                const errorText = await response.text();
+                let errorMessage;
+                try {
+                    const errorData = JSON.parse(errorText);
+                    errorMessage = errorData.detail || '上传失败';
+                } catch (e) {
+                    errorMessage = errorText || '上传失败';
+                }
+                throw new Error(errorMessage);
+            }
+        } catch (error) {
+            console.error('上传文件时出错:', error);
+            showMessage('<div class="error-message">上传文件失败: ' + error.message + '</div>');
+        }
+    }
+
+    // 保存文档
+    async function handleSave() {
+        try {
+            const content = getEditorContent();
+            let fileName = '{{ document_name }}';
+
+            // 发送到服务器
+            const formData = new FormData();
+            formData.append('file_name', fileName);
+            formData.append('content', content);
+
+            const response = await fetch('{{ request.app.url_path_for("document_save_route") }}', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (response.ok) {
+                const message = await response.text();
+                showMessage(message);
+
+                // 保存成功后回到查看模式并刷新页面
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1500);
+            } else {
+                const errorText = await response.text();
+                let errorMessage;
+                try {
+                    const errorData = JSON.parse(errorText);
+                    errorMessage = errorData.detail || '保存失败';
+                } catch (e) {
+                    errorMessage = errorText || '保存失败';
+                }
+                throw new Error(errorMessage);
+            }
+        } catch (error) {
+            console.error('保存文档时出错:', error);
+            showMessage('<div class="error-message">保存文档失败: ' + error.message + '</div>');
+        }
+    }
+
+    // 显示/隐藏另存为表单
+    function toggleSaveAsForm() {
+        const saveasForm = document.getElementById('saveas-form');
+        if (!saveasForm) return;
+
+        if (saveasForm.style.display === 'block') {
+            saveasForm.style.display = 'none';
+        } else {
+            saveasForm.style.display = 'block';
+            document.getElementById('new-document-name').focus();
+        }
+    }
+
+    // 另存为新文档
+    async function handleSaveAs(event) {
+        event.preventDefault();
+
+        const newFileName = document.getElementById('new-document-name').value.trim();
+        if (!newFileName) {
+            showMessage('<div class="error-message">请输入新文档名称</div>');
+            return;
+        }
+
+        try {
+            const content = getEditorContent();
+
+            // 构建文件名 (确保有正确的扩展名)
+            let fileName = newFileName;
+            if (documentType === 'markdown' && !fileName.toLowerCase().endsWith('.md')) {
+                fileName += '.md';
+            } else if (documentType === 'txt' && !fileName.toLowerCase().endsWith('.txt')) {
+                fileName += '.txt';
+            }
+
+            // 发送到服务器
+            const formData = new FormData();
+            formData.append('file_name', fileName);
+            formData.append('content', content);
+
+            const response = await fetch('{{ request.app.url_path_for("document_save_route") }}', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (response.ok) {
+                const message = await response.text();
+                showMessage(message);
+
+                // 跳转到新文档
+                setTimeout(() => {
+                    window.location.href = `/document/view/${encodeURIComponent(fileName)}/file`;
+                }, 1500);
+            } else {
+                const errorText = await response.text();
+                let errorMessage;
+                try {
+                    const errorData = JSON.parse(errorText);
+                    errorMessage = errorData.detail || '保存失败';
+                } catch (e) {
+                    errorMessage = errorText || '保存失败';
+                }
+                throw new Error(errorMessage);
+            }
+        } catch (error) {
+            console.error('保存新文档时出错:', error);
+            showMessage('<div class="error-message">保存新文档失败: ' + error.message + '</div>');
+        }
+    }
+
+    // 显示消息
+    function showMessage(message) {
+        const messageDiv = document.getElementById('message');
+        if (messageDiv) {
+            messageDiv.innerHTML = message;
+            messageDiv.scrollIntoView({ behavior: 'smooth' });
+            setTimeout(() => {
+                messageDiv.innerHTML = '';
+            }, 3000);
+        } else {
+            console.error('找不到消息显示区域');
+        }
+    }
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="document-container">
+    <div class="document-header">
+        <h1 class="document-title">{{ document_name }}</h1>
+        <div class="document-meta">
+            文档类型: {{ document_type }} |
+            {% if last_modified %}
+            最后修改: {{ last_modified }}
+            {% else %}
+            最后修改: 未知
+            {% endif %}
+        </div>
+    </div>
+
+    <div id="message" class="message"></div>
+
+    <div class="mode-container">
+        <!-- 查看模式 -->
+        <div id="view-mode" class="mode view-mode">
+            <div id="view-content" class="document-content" {% if document_type=="Markdown" %}
+                data-original="{{ document_html|e }}" {% endif %}>
+                {{ document_html|safe }}
+            </div>
+        </div>
+
+        <!-- 编辑模式 -->
+        <div id="edit-mode" class="mode edit-mode">
+            <div class="preview-tabs">
+                <div class="preview-tab active" data-target="edit-content">编辑文档</div>
+                <div class="preview-tab" data-target="preview-content">预览效果</div>
+            </div>
+
+            <!-- 编辑区域 -->
+            <div id="edit-content" class="preview-content active">
+                {% if document_type=="Markdown" %}
+                <textarea id="markdown-editor"></textarea>
+                {% else %}
+                <textarea id="richtext-editor"></textarea>
+                {% endif %}
+            </div>
+
+            <!-- 预览区域 -->
+            <div id="preview-content" class="preview-content">
+                <div id="preview-rendered" class="document-content markdown-content"></div>
+            </div>
+
+            <!-- 另存为表单 -->
+            <div id="saveas-form" class="saveas-form" style="display: none;">
+                <h3>保存为新文档</h3>
+                <form>
+                    <div class="form-group">
+                        <label for="new-document-name">新文档名称</label>
+                        <input type="text" id="new-document-name" class="form-control" placeholder="输入新文档名称，不含扩展名"
+                            required>
+                    </div>
+                    <div class="document-actions" style="justify-content: flex-end;">
+                        <button type="button" class="btn btn-light" onclick="toggleSaveAsForm()">取消</button>
+                        <button type="submit" class="btn btn-primary">保存为新文档</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- 上传模式 -->
+        <div id="upload-mode" class="mode upload-mode">
+            <div id="upload-area" class="upload-area">
+                <div class="upload-icon">📄</div>
+                <div class="upload-text">点击或拖放文件到此处上传</div>
+                <div>请选择相同类型的文档文件</div>
+                <input type="file" id="file-input" style="display: none;" accept=".docx,.md,.txt">
+            </div>
+
+            <div id="uploaded-file-info" class="uploaded-file-info">
+                <div class="file-name" id="file-name"></div>
+                <div class="file-type" id="file-type"></div>
+                <button id="upload-submit-btn" class="btn btn-primary" style="margin-top: 10px;">上传并替换</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 操作按钮 -->
+    <div class="document-actions">
+        <button id="edit-btn" class="btn btn-primary">
+            <span class="btn-icon">✏️</span> 编辑文档
+        </button>
+        <button id="upload-btn" class="btn btn-secondary">
+            <span class="btn-icon">📤</span> 上传新版本
+        </button>
+        <button id="save-btn" class="btn btn-primary">
+            <span class="btn-icon">💾</span> 保存文档
+        </button>
+        <button id="saveas-btn" class="btn btn-warning">
+            <span class="btn-icon">📋</span> 另存为
+        </button>
+        <button id="cancel-btn" class="btn btn-light">
+            <span class="btn-icon">❌</span> 取消
+        </button>
+        <a id="download-btn" href="{{ download_url }}" class="btn btn-purple" download>
+            <span class="btn-icon">📥</span> 下载文档
+        </a>
+    </div>
+</div>
+{% endblock %}
